@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.suo
+*.sw?
+
+# Root-level env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Mockup source files (not source code)
+Event Registration System Mockup.zip
+Event Registration System/
+mockup/
+
+# Project documents (share via Google Drive instead)
+*.pdf
+*.png

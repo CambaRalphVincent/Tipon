@@ -1,0 +1,145 @@
+import { type ReactNode, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import {
+  CalendarDays,
+  LayoutDashboard,
+  ListChecks,
+  LogOut,
+  Menu,
+  Ticket,
+  X,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Separator } from "./ui/separator";
+import { cn } from "./ui/utils";
+import { NotificationBell } from "./NotificationBell";
+import { ThemeSwitcher } from "./ThemeSwitcher";
+import { BrandLogo } from "./BrandLogo";
+import { useAppStore } from "../store/AppStore";
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof CalendarDays;
+}
+
+const PARTICIPANT_NAV: NavItem[] = [
+  { to: "/events", label: "Browse Events", icon: CalendarDays },
+  { to: "/my-registrations", label: "My Registrations", icon: Ticket },
+];
+
+const ORGANIZER_NAV: NavItem[] = [
+  { to: "/organizer", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/organizer/events", label: "Manage Events", icon: ListChecks },
+];
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { role, currentUser } = useAppStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const items = role === "participant" ? PARTICIPANT_NAV : ORGANIZER_NAV;
+
+  return (
+    <div className="flex h-full flex-col gap-6 p-4">
+      <Link to="/events" className="block px-2 py-1" onClick={onNavigate}>
+        <BrandLogo layout="horizontal" />
+      </Link>
+
+      <nav className="flex flex-col gap-1">
+        {items.map((item) => {
+          const active =
+            location.pathname === item.to ||
+            (item.to !== "/organizer" && location.pathname.startsWith(item.to));
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                active
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              )}
+            >
+              <item.icon className="size-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="mt-auto space-y-3">
+        <Separator />
+        <div className="flex items-center gap-3 px-2">
+          <Avatar className="size-9">
+            <AvatarFallback>
+              {currentUser.name.split(" ").map((p) => p[0]).join("").slice(0, 2)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-medium">{currentUser.name}</p>
+            <p className="truncate text-xs capitalize text-muted-foreground">{role}</p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start"
+          onClick={() => {
+            onNavigate?.();
+            navigate("/");
+          }}
+        >
+          <LogOut className="size-4" /> Sign out
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <div className="flex min-h-screen bg-background text-foreground">
+      {/* Desktop sidebar */}
+      <aside className="hidden w-64 shrink-0 border-r md:block">
+        <div className="sticky top-0 h-screen">
+          <SidebarContent />
+        </div>
+      </aside>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute left-0 top-0 h-full w-64 border-r bg-background">
+            <SidebarContent onNavigate={() => setMobileOpen(false)} />
+          </aside>
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </Button>
+          <div className="hidden md:block" />
+          <div className="flex items-center gap-1">
+            <ThemeSwitcher />
+            <NotificationBell />
+          </div>
+        </header>
+        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+      </div>
+    </div>
+  );
+}
