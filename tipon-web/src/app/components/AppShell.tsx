@@ -7,6 +7,7 @@ import {
   LogOut,
   Menu,
   Ticket,
+  Users,
   X,
 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -34,11 +35,15 @@ const ORGANIZER_NAV: NavItem[] = [
   { to: "/organizer/events", label: "Manage Events", icon: ListChecks },
 ];
 
+const ADMIN_NAV: NavItem[] = [
+  { to: "/admin", label: "User Management", icon: Users },
+];
+
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { role, currentUser } = useAppStore();
+  const { role, currentUser, logout } = useAppStore();
   const location = useLocation();
   const navigate = useNavigate();
-  const items = role === "participant" ? PARTICIPANT_NAV : ORGANIZER_NAV;
+  const items = role === "admin" ? ADMIN_NAV : role === "organizer" ? ORGANIZER_NAV : PARTICIPANT_NAV;
 
   return (
     <div className="flex h-full flex-col gap-6 p-4">
@@ -87,8 +92,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           variant="outline"
           size="sm"
           className="w-full justify-start"
-          onClick={() => {
+          onClick={async () => {
             onNavigate?.();
+            await logout();
             navigate("/");
           }}
         >

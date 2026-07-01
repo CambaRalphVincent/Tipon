@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
+import { toast } from "sonner";
+import { uploadApi } from "../lib/api";
 import {
   Dialog,
   DialogContent,
@@ -75,6 +77,7 @@ export function EventFormDialog({
   };
 
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [uploading, setUploading] = useState(false);
   // Track locally-created object URLs so we can revoke them on close.
   const objectUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,13 +101,29 @@ export function EventFormDialog({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Revoke previous object URL to avoid memory leaks.
+    // Show a local preview immediately while the upload runs.
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    const url = URL.createObjectURL(file);
-    objectUrlRef.current = url;
-    set("cover_image_path", url);
-    // Reset the input so the same file can be re-selected if cleared.
+    const blobUrl = URL.createObjectURL(file);
+    objectUrlRef.current = blobUrl;
+    set("cover_image_path", blobUrl);
     e.target.value = "";
+
+    // Upload to server in the background.
+    setUploading(true);
+    uploadApi
+      .image(file)
+      .then((res) => {
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+        set("cover_image_path", res.data.url);
+      })
+      .catch(() => {
+        toast.error("Image upload failed. Please try again.");
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+        set("cover_image_path", "");
+      })
+      .finally(() => setUploading(false));
   };
 
   const clearThumbnail = () => {
@@ -115,7 +134,7 @@ export function EventFormDialog({
     set("cover_image_path", "");
   };
 
-  const valid = form.title.trim() && form.venue.trim() && form.date && form.capacity > 0;
+  const valid = form.title.trim() && form.venue.trim() && form.date && form.capacity > 0 && !uploading;
 
   const submit = () => {
     if (!valid) return;
@@ -161,21 +180,30 @@ export function EventFormDialog({
             {preview ? (
               <div className="relative aspect-[16/9] overflow-hidden rounded-lg border bg-muted">
                 <img src={preview} alt="Thumbnail preview" className="size-full object-cover" />
-                <button
-                  type="button"
-                  onClick={clearThumbnail}
-                  className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
-                  aria-label="Remove thumbnail"
-                >
-                  <X className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-2 right-2 rounded-md bg-black/60 px-2.5 py-1.5 text-xs text-white transition-colors hover:bg-black/80"
-                >
-                  Change
-                </button>
+                {uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <Loader2 className="size-6 animate-spin text-white" />
+                  </div>
+                )}
+                {!uploading && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={clearThumbnail}
+                      className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+                      aria-label="Remove thumbnail"
+                    >
+                      <X className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-2 right-2 rounded-md bg-black/60 px-2.5 py-1.5 text-xs text-white transition-colors hover:bg-black/80"
+                    >
+                      Change
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <button
@@ -245,7 +273,9 @@ export function EventFormDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={submit} disabled={!valid}>
-            {isEdit ? "Save changes" : "Create event"}
+            {uploading ? (
+              <><Loader2 className="size-4 animate-spin" /> Uploading…</>
+            ) : isEdit ? "Save changes" : "Create event"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, Check, Pencil, Search, UserX, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../components/ui/button";
-import { TriggerButton } from "../components/TriggerButton";
 import { Input } from "../components/ui/input";
 import { Card, CardContent } from "../components/ui/card";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
@@ -23,28 +23,61 @@ import {
 import { EventFormDialog } from "../components/EventFormDialog";
 import { cn } from "../components/ui/utils";
 import { formatEventDate, formatEventTime } from "../lib/format";
-import { useAppStore } from "../store/AppStore";
+import { adaptRegistration, useAppStore } from "../store/AppStore";
 import { CalendarDays, CheckCircle2, Users } from "lucide-react";
+import { registrationsApi } from "../lib/api";
+import type { Registration, User, UserRole } from "../data/mockData";
+import type { ApiRegistration } from "../lib/api";
+
+interface RowItem {
+  reg: Registration;
+  user: User;
+}
+
+function adaptRow(r: ApiRegistration): RowItem | null {
+  if (!r.user) return null;
+  return {
+    reg: adaptRegistration(r),
+    user: {
+      id: String(r.user.id),
+      name: r.user.name,
+      email: r.user.email,
+      role: "participant" as UserRole,
+    },
+  };
+}
 
 export function RegistrantList() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { eventById, registrations, userById, confirmedCountFor, recordAttendance } = useAppStore();
+  const { eventById, recordAttendance } = useAppStore();
   const [query, setQuery] = useState("");
+  const [rows, setRows] = useState<RowItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const event = eventById(id);
 
-  const rows = useMemo(() => {
-    return registrations
-      .filter((r) => r.eventId === id && r.status === "registered")
-      .map((r) => ({ reg: r, user: userById(r.userId)! }))
-      .filter((x) => x.user)
-      .filter((x) =>
-        query.trim()
-          ? (x.user.name + x.user.email).toLowerCase().includes(query.toLowerCase())
-          : true,
-      );
-  }, [registrations, id, userById, query]);
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    registrationsApi
+      .eventRegistrations(id)
+      .then((res) => {
+        setRows(res.data.map(adaptRow).filter(Boolean) as RowItem[]);
+      })
+      .catch(() => toast.error("Failed to load registrants."))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const handleAttendance = (reg: Registration, next: Registration["attendance"]) => {
+    // Optimistic local update for instant UI feedback.
+    setRows((prev) =>
+      prev.map((x) => (x.reg.id === reg.id ? { ...x, reg: { ...x.reg, attendance: next } } : x)),
+    );
+    // Store action handles the API call and updates global registrations
+    // so the dashboard attendance rate stays in sync.
+    recordAttendance(reg.id, next);
+  };
 
   if (!event) {
     return (
@@ -57,7 +90,13 @@ export function RegistrantList() {
     );
   }
 
-  const filled = confirmedCountFor(event.id);
+  const filteredRows = rows.filter((x) =>
+    query.trim()
+      ? (x.user.name + x.user.email).toLowerCase().includes(query.toLowerCase())
+      : true,
+  );
+
+  const filled = rows.length;
   const present = rows.filter((x) => x.reg.attendance === "present").length;
   const absent = rows.filter((x) => x.reg.attendance === "absent").length;
 
@@ -80,9 +119,9 @@ export function RegistrantList() {
         <EventFormDialog
           event={event}
           trigger={
-            <TriggerButton variant="outline">
+            <Button variant="outline">
               <Pencil className="size-4" /> Edit event
-            </TriggerButton>
+            </Button>
           }
         />
       </div>
@@ -102,7 +141,7 @@ export function RegistrantList() {
 
       <div className="space-y-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <h2 className="font-medium">Registrants ({rows.length})</h2>
+          <h2 className="font-medium">Registrants ({filteredRows.length})</h2>
           <div className="relative sm:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -125,14 +164,20 @@ export function RegistrantList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+                    Loading registrants…
+                  </TableCell>
+                </TableRow>
+              ) : filteredRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
                     No registrants found.
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map(({ reg, user }) => (
+                filteredRows.map(({ reg, user }) => (
                   <TableRow key={reg.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -164,7 +209,7 @@ export function RegistrantList() {
                               "border-emerald-500/40 bg-emerald-500/15 text-emerald-400",
                           )}
                           onClick={() =>
-                            recordAttendance(reg.id, reg.attendance === "present" ? "pending" : "present")
+                            handleAttendance(reg, reg.attendance === "present" ? "pending" : "present")
                           }
                         >
                           <Check className="size-3.5" /> Present
@@ -178,7 +223,7 @@ export function RegistrantList() {
                               "border-red-500/40 bg-red-500/15 text-red-400",
                           )}
                           onClick={() =>
-                            recordAttendance(reg.id, reg.attendance === "absent" ? "pending" : "absent")
+                            handleAttendance(reg, reg.attendance === "absent" ? "pending" : "absent")
                           }
                         >
                           <X className="size-3.5" /> Absent

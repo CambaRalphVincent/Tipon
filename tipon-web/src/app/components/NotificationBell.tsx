@@ -27,7 +27,7 @@ export function NotificationBell() {
     useAppStore();
 
   const mine: AppNotification[] = notifications
-    .filter((n) => n.userId === currentUser.id)
+    .filter((n) => n.userId === (currentUser?.id ?? ""))
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
   const unread = mine.filter((n) => !n.readAt).length;
 

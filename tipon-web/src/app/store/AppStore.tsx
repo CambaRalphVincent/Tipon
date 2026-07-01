@@ -1,22 +1,86 @@
-// Central in-memory store for the Event Registration System prototype.
-// Holds users, events, registrations and notifications, exposes actions, and
-// enforces capacity / duplicate-registration rules (FR-14..FR-17).
-
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 import {
-  users as seedUsers,
-  events as seedEvents,
-  registrations as seedRegistrations,
-  notifications as seedNotifications,
-  DEFAULT_PARTICIPANT_ID,
-  DEFAULT_ORGANIZER_ID,
-  type AppNotification,
-  type EventItem,
-  type Registration,
-  type User,
-  type UserRole,
+  authApi,
+  eventsApi,
+  notificationsApi,
+  registrationsApi,
+  type ApiEvent,
+  type ApiNotification,
+  type ApiRegistration,
+  type ApiUser,
+} from "../lib/api";
+import type {
+  AppNotification,
+  AttendanceStatus,
+  EventItem,
+  NotificationType,
+  Registration,
+  User,
+  UserRole,
 } from "../data/mockData";
+
+// ---------------------------------------------------------------------------
+// Adapters — convert snake_case API responses to camelCase frontend types
+// ---------------------------------------------------------------------------
+
+function adaptUser(u: ApiUser | { id: number; name: string; email: string; role?: string }): User {
+  return {
+    id: String(u.id),
+    name: u.name,
+    email: u.email,
+    role: ((u.role ?? "participant") as UserRole),
+  };
+}
+
+function adaptEvent(e: ApiEvent): EventItem {
+  return {
+    id: String(e.id),
+    organizerId: String(e.organizer_id),
+    title: e.title,
+    description: e.description ?? "",
+    venue: e.venue,
+    eventDate: e.event_date,
+    capacity: e.capacity,
+    status: e.status,
+    cover_image_path: e.cover_image_path ?? "",
+    registeredCount: e.registered_count,
+  };
+}
+
+export function adaptRegistration(r: ApiRegistration): Registration {
+  return {
+    id: String(r.id),
+    eventId: String(r.event_id),
+    userId: String(r.user_id),
+    status: r.status,
+    attendance: r.attendance,
+    createdAt: r.created_at,
+  };
+}
+
+function adaptNotification(n: ApiNotification): AppNotification {
+  const isRegistered = n.data?.status === "registered";
+  return {
+    id: n.id,
+    type: (isRegistered ? "registration_confirmed" : "event_cancelled") as NotificationType,
+    userId: String(n.notifiable_id),
+    title: isRegistered ? "Registration confirmed" : "Registration cancelled",
+    body: n.data?.message ?? "",
+    createdAt: n.created_at,
+    readAt: n.read_at,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Store interface
+// ---------------------------------------------------------------------------
 
 interface NewEventInput {
   title: string;
@@ -33,73 +97,55 @@ interface LoginResult {
 }
 
 interface AppStoreValue {
-  // identity
-  currentUser: User;
+  initialized: boolean;
+  currentUser: User | null;
   role: UserRole;
-  /** Mock backend auth: resolves the user's role from their email. */
-  login: (email: string, password: string) => LoginResult;
-  /** Participant self-registration. */
-  registerParticipant: (name: string, email: string) => LoginResult;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  registerParticipant: (name: string, email: string, password: string) => Promise<LoginResult>;
+  logout: () => Promise<void>;
 
-  // data
   users: User[];
   events: EventItem[];
   registrations: Registration[];
   notifications: AppNotification[];
 
-  // derived helpers
   confirmedCountFor: (eventId: string) => number;
   remainingFor: (eventId: string) => number;
   isFull: (eventId: string) => boolean;
-  registrationFor: (eventId: string, userId?: string) => Registration | undefined;
+  registrationFor: (eventId: string) => Registration | undefined;
   userById: (id: string) => User | undefined;
   eventById: (id: string) => EventItem | undefined;
 
-  // participant actions
   register: (eventId: string) => void;
   cancelRegistration: (eventId: string) => void;
-
-  // organizer actions
   createEvent: (input: NewEventInput) => void;
   updateEvent: (eventId: string, input: NewEventInput) => void;
   cancelEvent: (eventId: string) => void;
-  recordAttendance: (registrationId: string, attendance: Registration["attendance"]) => void;
+  recordAttendance: (registrationId: string, attendance: AttendanceStatus) => void;
 
-  // notifications
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
 }
 
-// Safe read-only default used when a component renders outside the provider
-// (e.g. Figma's isolated component preview). All mutating actions are no-ops.
-const defaultUser = seedUsers.find((u) => u.id === DEFAULT_ORGANIZER_ID)!;
 const noop = () => {};
+
 const defaultContextValue: AppStoreValue = {
-  currentUser: defaultUser,
-  role: "organizer",
-  login: () => ({ ok: true, role: "organizer" }),
-  registerParticipant: () => ({ ok: true, role: "participant" }),
-  users: seedUsers,
-  events: seedEvents,
-  registrations: seedRegistrations,
-  notifications: seedNotifications,
-  confirmedCountFor: (id) => seedRegistrations.filter((r) => r.eventId === id && r.status === "registered").length,
-  remainingFor: (id) => {
-    const ev = seedEvents.find((e) => e.id === id);
-    if (!ev) return 0;
-    const filled = seedRegistrations.filter((r) => r.eventId === id && r.status === "registered").length;
-    return Math.max(0, ev.capacity - filled);
-  },
-  isFull: (id) => {
-    const ev = seedEvents.find((e) => e.id === id);
-    if (!ev) return false;
-    const filled = seedRegistrations.filter((r) => r.eventId === id && r.status === "registered").length;
-    return filled >= ev.capacity;
-  },
-  registrationFor: (eventId, userId = defaultUser.id) =>
-    seedRegistrations.find((r) => r.eventId === eventId && r.userId === userId && r.status === "registered"),
-  userById: (id) => seedUsers.find((u) => u.id === id),
-  eventById: (id) => seedEvents.find((e) => e.id === id),
+  initialized: false,
+  currentUser: null,
+  role: "participant",
+  login: async () => ({ ok: false }),
+  registerParticipant: async () => ({ ok: false }),
+  logout: async () => {},
+  users: [],
+  events: [],
+  registrations: [],
+  notifications: [],
+  confirmedCountFor: () => 0,
+  remainingFor: () => 0,
+  isFull: () => false,
+  registrationFor: () => undefined,
+  userById: () => undefined,
+  eventById: () => undefined,
   register: noop,
   cancelRegistration: noop,
   createEvent: noop,
@@ -112,47 +158,143 @@ const defaultContextValue: AppStoreValue = {
 
 const AppStoreContext = createContext<AppStoreValue>(defaultContextValue);
 
-let idCounter = 1000;
-const nextId = (prefix: string) => `${prefix}-${++idCounter}`;
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [users] = useState<User[]>(seedUsers);
-  const [currentUserId, setCurrentUserId] = useState<string>(DEFAULT_PARTICIPANT_ID);
-  const [events, setEvents] = useState<EventItem[]>(seedEvents);
-  const [registrations, setRegistrations] = useState<Registration[]>(seedRegistrations);
-  const [notifications, setNotifications] = useState<AppNotification[]>(seedNotifications);
+  const [initialized, setInitialized] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
-  const currentUser = useMemo(
-    () => users.find((u) => u.id === currentUserId) ?? users[0],
-    [currentUserId, users],
-  );
-  // Role is derived from the signed-in account — never chosen at login.
-  const role: UserRole = currentUser.role;
+  const role: UserRole = currentUser?.role ?? "participant";
 
-  // Mock backend: match the email against seeded accounts to determine the role.
-  // Any organizer email signs in as an organizer; everything else is a
-  // participant (prototype — the password is not actually verified).
-  const login = (email: string): LoginResult => {
-    const match = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (match) {
-      setCurrentUserId(match.id);
-      return { ok: true, role: match.role };
+  const mergeUsers = (incoming: User[]) => {
+    setUsers((prev) => {
+      const map = new Map(prev.map((u) => [u.id, u]));
+      incoming.forEach((u) => { if (!map.has(u.id)) map.set(u.id, u); });
+      return Array.from(map.values());
+    });
+  };
+
+  const loadAppData = async (user: User) => {
+    const [eventsRes, notifRes] = await Promise.all([
+      eventsApi.all(),
+      notificationsApi.all(),
+    ]);
+
+    setEvents(eventsRes.data.map(adaptEvent));
+    setNotifications(notifRes.data.map(adaptNotification));
+
+    // Collect organizer info from event list into users map
+    const organizerUsers = eventsRes.data
+      .filter((e) => e.organizer)
+      .map((e) => ({ id: String(e.organizer!.id), name: e.organizer!.name, email: "", role: "organizer" as UserRole }));
+    mergeUsers(organizerUsers);
+
+    if (user.role === "participant") {
+      const regsRes = await registrationsApi.myRegistrations();
+      setRegistrations(regsRes.data.map(adaptRegistration));
+    } else if (user.role === "organizer") {
+      const regsRes = await registrationsApi.organizerRegistrations();
+      setRegistrations(regsRes.data.map(adaptRegistration));
+      const participantUsers = regsRes.data
+        .filter((r) => r.user)
+        .map((r) => ({ id: String(r.user!.id), name: r.user!.name, email: r.user!.email, role: "participant" as UserRole }));
+      mergeUsers(participantUsers);
     }
-    // Unknown email — default to organizer for testing purposes.
-    setCurrentUserId(DEFAULT_ORGANIZER_ID);
-    return { ok: true, role: "organizer" };
   };
 
-  const registerParticipant = (): LoginResult => {
-    setCurrentUserId(DEFAULT_PARTICIPANT_ID);
-    return { ok: true, role: "participant" };
+  // Auto-login on mount if a valid token exists in localStorage
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) { setInitialized(true); return; }
+
+    authApi.me()
+      .then(async (res) => {
+        const user = adaptUser(res.data);
+        setCurrentUser(user);
+        mergeUsers([user]);
+        await loadAppData(user);
+      })
+      .catch(() => localStorage.removeItem("token"))
+      .finally(() => setInitialized(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Auth actions
+  // ---------------------------------------------------------------------------
+
+  const login = async (email: string, password: string): Promise<LoginResult> => {
+    try {
+      const res = await authApi.login({ email, password });
+      const { user: apiUser, token } = res.data;
+      localStorage.setItem("token", token);
+      const user = adaptUser(apiUser);
+      setCurrentUser(user);
+      mergeUsers([user]);
+      await loadAppData(user);
+      return { ok: true, role: user.role };
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Invalid credentials.";
+      toast.error(msg);
+      return { ok: false };
+    }
   };
+
+  const registerParticipant = async (
+    name: string,
+    email: string,
+    password: string,
+  ): Promise<LoginResult> => {
+    try {
+      const res = await authApi.register({ name, email, password, password_confirmation: password });
+      const { user: apiUser, token } = res.data;
+      localStorage.setItem("token", token);
+      const user = adaptUser(apiUser);
+      setCurrentUser(user);
+      mergeUsers([user]);
+      await loadAppData(user);
+      return { ok: true, role: user.role };
+    } catch (err: unknown) {
+      const errData = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })
+        ?.response?.data;
+      const msg = errData?.errors
+        ? Object.values(errData.errors).flat()[0]
+        : (errData?.message ?? "Registration failed.");
+      toast.error(msg);
+      return { ok: false };
+    }
+  };
+
+  const logout = async () => {
+    try { await authApi.logout(); } catch { /* proceed even if API fails */ }
+    localStorage.removeItem("token");
+    setCurrentUser(null);
+    setUsers([]);
+    setEvents([]);
+    setRegistrations([]);
+    setNotifications([]);
+  };
+
+  // ---------------------------------------------------------------------------
+  // Derived helpers
+  // ---------------------------------------------------------------------------
 
   const userById = (id: string) => users.find((u) => u.id === id);
   const eventById = (id: string) => events.find((e) => e.id === id);
 
-  const confirmedCountFor = (eventId: string) =>
-    registrations.filter((r) => r.eventId === eventId && r.status === "registered").length;
+  const confirmedCountFor = (eventId: string) => {
+    const ev = events.find((e) => e.id === eventId);
+    if (ev?.registeredCount !== undefined) return ev.registeredCount;
+    return registrations.filter((r) => r.eventId === eventId && r.status === "registered").length;
+  };
 
   const remainingFor = (eventId: string) => {
     const ev = eventById(eventId);
@@ -162,151 +304,179 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const isFull = (eventId: string) => remainingFor(eventId) <= 0;
 
-  const registrationFor = (eventId: string, userId = currentUser.id) =>
+  const registrationFor = (eventId: string) =>
     registrations.find(
-      (r) => r.eventId === eventId && r.userId === userId && r.status === "registered",
+      (r) => r.eventId === eventId && r.userId === (currentUser?.id ?? "") && r.status === "registered",
     );
 
-  const pushNotification = (n: Omit<AppNotification, "id" | "createdAt" | "readAt">) => {
-    setNotifications((prev) => [
-      { ...n, id: nextId("nt"), readAt: null, createdAt: new Date().toISOString() },
-      ...prev,
-    ]);
-  };
-
-  // -- Participant actions ---------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Participant actions
+  // ---------------------------------------------------------------------------
 
   const register = (eventId: string) => {
-    const ev = eventById(eventId);
-    if (!ev) return;
-
-    if (ev.status === "cancelled") {
-      toast.error("This event has been cancelled.");
-      return;
-    }
-    // FR-16 — prevent duplicate registration.
-    if (registrationFor(eventId)) {
-      toast.error("You're already registered for this event.");
-      return;
-    }
-    // FR-15 / FR-17 — enforce capacity.
-    if (isFull(eventId)) {
-      toast.error("Registration is closed — this event is at full capacity.");
-      return;
-    }
-
-    setRegistrations((prev) => [
-      ...prev,
-      {
-        id: nextId("rg"),
-        eventId,
-        userId: currentUser.id,
-        status: "registered",
-        attendance: "pending",
-        createdAt: new Date().toISOString(),
-      },
-    ]);
-    // FR-22 — notify on successful registration.
-    pushNotification({
-      type: "registration_confirmed",
-      userId: currentUser.id,
-      title: "Registration confirmed",
-      body: `You're registered for "${ev.title}".`,
-    });
-    toast.success(`Registered for "${ev.title}"`);
+    void (async () => {
+      try {
+        const res = await registrationsApi.register(eventId);
+        setRegistrations((prev) => [...prev, adaptRegistration(res.data)]);
+        setEvents((prev) =>
+          prev.map((e) => e.id === eventId ? { ...e, registeredCount: (e.registeredCount ?? 0) + 1 } : e),
+        );
+        toast.success(`Registered for "${eventById(eventId)?.title ?? "the event"}"`);
+        const notifRes = await notificationsApi.all();
+        setNotifications(notifRes.data.map(adaptNotification));
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          "Registration failed.";
+        toast.error(msg);
+      }
+    })();
   };
 
   const cancelRegistration = (eventId: string) => {
     const reg = registrationFor(eventId);
     if (!reg) return;
-    setRegistrations((prev) =>
-      prev.map((r) => (r.id === reg.id ? { ...r, status: "cancelled" } : r)),
-    );
-    const ev = eventById(eventId);
-    toast.success(`Cancelled registration${ev ? ` for "${ev.title}"` : ""}`);
+    void (async () => {
+      try {
+        await registrationsApi.cancel(reg.id);
+        setRegistrations((prev) =>
+          prev.map((r) => (r.id === reg.id ? { ...r, status: "cancelled" } : r)),
+        );
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === eventId ? { ...e, registeredCount: Math.max(0, (e.registeredCount ?? 1) - 1) } : e,
+          ),
+        );
+        toast.success(`Cancelled registration for "${eventById(eventId)?.title ?? "the event"}"`);
+        const notifRes = await notificationsApi.all();
+        setNotifications(notifRes.data.map(adaptNotification));
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          "Cancellation failed.";
+        toast.error(msg);
+      }
+    })();
   };
 
-  // -- Organizer actions -----------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Organizer actions
+  // ---------------------------------------------------------------------------
 
   const createEvent = (input: NewEventInput) => {
-    const ev: EventItem = {
-      id: nextId("ev"),
-      organizerId: currentUser.id,
-      title: input.title,
-      description: input.description,
-      venue: input.venue,
-      eventDate: input.eventDate,
-      capacity: input.capacity,
-      status: "open",
-      cover_image_path: input.cover_image_path ||
-        "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80",
-    };
-    setEvents((prev) => [ev, ...prev]);
-    toast.success(`Event "${ev.title}" created`);
+    void (async () => {
+      try {
+        const res = await eventsApi.create({
+          title: input.title,
+          description: input.description,
+          venue: input.venue,
+          event_date: input.eventDate,
+          capacity: input.capacity,
+          cover_image_path: input.cover_image_path?.startsWith("blob:") ? undefined : input.cover_image_path,
+        });
+        const adapted = { ...adaptEvent(res.data), registeredCount: 0 };
+        setEvents((prev) => [adapted, ...prev]);
+        toast.success(`Event "${adapted.title}" created`);
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          "Failed to create event.";
+        toast.error(msg);
+      }
+    })();
   };
 
   const updateEvent = (eventId: string, input: NewEventInput) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, ...input } : e)),
-    );
-    // FR-23 — notify registered participants of updates.
-    const regs = registrations.filter((r) => r.eventId === eventId && r.status === "registered");
-    regs.forEach((r) =>
-      pushNotification({
-        type: "event_updated",
-        userId: r.userId,
-        title: "Event details updated",
-        body: `"${input.title}" has been updated by the organizer.`,
-      }),
-    );
-    toast.success("Event updated");
+    void (async () => {
+      try {
+        const res = await eventsApi.update(eventId, {
+          title: input.title,
+          description: input.description,
+          venue: input.venue,
+          event_date: input.eventDate,
+          capacity: input.capacity,
+          cover_image_path: input.cover_image_path?.startsWith("blob:") ? undefined : input.cover_image_path,
+        });
+        const adapted = adaptEvent(res.data);
+        setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, ...adapted } : e)));
+        toast.success("Event updated");
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          "Failed to update event.";
+        toast.error(msg);
+      }
+    })();
   };
 
   const cancelEvent = (eventId: string) => {
-    const ev = eventById(eventId);
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status: "cancelled" } : e)),
-    );
-    const regs = registrations.filter((r) => r.eventId === eventId && r.status === "registered");
-    regs.forEach((r) =>
-      pushNotification({
-        type: "event_cancelled",
-        userId: r.userId,
-        title: "Event cancelled",
-        body: `"${ev?.title ?? "An event"}" you registered for has been cancelled.`,
-      }),
-    );
-    toast.success("Event cancelled");
+    void (async () => {
+      try {
+        await eventsApi.cancel(eventId);
+        setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, status: "cancelled" } : e)));
+        toast.success("Event cancelled");
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          "Failed to cancel event.";
+        toast.error(msg);
+      }
+    })();
   };
 
-  const recordAttendance = (
-    registrationId: string,
-    attendance: Registration["attendance"],
-  ) => {
-    setRegistrations((prev) =>
-      prev.map((r) => (r.id === registrationId ? { ...r, attendance } : r)),
-    );
+  const recordAttendance = (registrationId: string, attendance: AttendanceStatus) => {
+    void (async () => {
+      try {
+        await registrationsApi.markAttendance(registrationId, attendance);
+        setRegistrations((prev) =>
+          prev.map((r) => (r.id === registrationId ? { ...r, attendance } : r)),
+        );
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          "Failed to record attendance.";
+        toast.error(msg);
+      }
+    })();
   };
 
-  // -- Notifications ---------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Notifications
+  // ---------------------------------------------------------------------------
 
   const markNotificationRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n)),
-    );
+    void (async () => {
+      try {
+        await notificationsApi.markRead(id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n)),
+        );
+      } catch { /* silently ignore */ }
+    })();
   };
 
   const markAllNotificationsRead = () => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.readAt ? n : { ...n, readAt: new Date().toISOString() })),
-    );
+    const unread = notifications.filter((n) => !n.readAt);
+    if (unread.length === 0) return;
+    void (async () => {
+      try {
+        await Promise.all(unread.map((n) => notificationsApi.markRead(n.id)));
+        setNotifications((prev) =>
+          prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
+        );
+      } catch { /* silently ignore */ }
+    })();
   };
 
+  // ---------------------------------------------------------------------------
+
   const value: AppStoreValue = {
+    initialized,
     currentUser,
     role,
     login,
     registerParticipant,
+    logout,
     users,
     events,
     registrations,

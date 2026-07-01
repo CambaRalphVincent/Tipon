@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, ClipboardList, Lock, Mail, ShieldCheck, Ticket, User } from "lucide-react";
+import { ArrowLeft, Lock, Mail, ShieldCheck, User } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -9,15 +10,16 @@ import { BrandLogo } from "../components/BrandLogo";
 import { useAppStore } from "../store/AppStore";
 import type { UserRole } from "../data/mockData";
 
-// Single login page. Credentials are sent to the (mock) backend, which
-// determines whether the account is a participant or organizer.
 export function AuthPage() {
   const navigate = useNavigate();
   const { login, registerParticipant } = useAppStore();
   const [mode, setMode] = useState<"login" | "register">("login");
 
-  const routeForRole = (role: UserRole) =>
-    navigate(role === "participant" ? "/events" : "/organizer");
+  const routeForRole = (role: UserRole) => {
+    if (role === "admin") navigate("/admin");
+    else if (role === "organizer") navigate("/organizer");
+    else navigate("/events");
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 text-foreground">
@@ -52,12 +54,8 @@ export function AuthPage() {
         <div className="p-6 sm:p-8">
           {mode === "login" ? (
             <LoginForm
-              onSignIn={(email, password) => {
-                const res = login(email, password);
-                if (res.ok && res.role) routeForRole(res.role);
-              }}
-              onQuickLogin={(email) => {
-                const res = login(email, "demo");
+              onSignIn={async (email, password) => {
+                const res = await login(email, password);
                 if (res.ok && res.role) routeForRole(res.role);
               }}
               onCreateAccount={() => setMode("register")}
@@ -65,8 +63,8 @@ export function AuthPage() {
           ) : (
             <RegisterForm
               onBack={() => setMode("login")}
-              onRegister={(name, email) => {
-                const res = registerParticipant(name, email);
+              onRegister={async (name, email, password) => {
+                const res = await registerParticipant(name, email, password);
                 if (res.ok && res.role) routeForRole(res.role);
               }}
             />
@@ -79,24 +77,24 @@ export function AuthPage() {
 
 function LoginForm({
   onSignIn,
-  onQuickLogin,
   onCreateAccount,
 }: {
-  onSignIn: (email: string, password: string) => void;
-  onQuickLogin: (email: string) => void;
+  onSignIn: (email: string, password: string) => Promise<void>;
   onCreateAccount: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    await onSignIn(email, password);
+    setLoading(false);
+  };
 
   return (
-    <form
-      className="space-y-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSignIn(email, password);
-      }}
-    >
+    <form className="space-y-4" onSubmit={handleSubmit}>
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
         <p className="text-sm text-muted-foreground">
@@ -136,38 +134,20 @@ function LoginForm({
         </div>
       </div>
 
-      <Button type="submit" className="w-full">
-        Sign in
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Signing in…" : "Sign in"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
         New to Tipon?{" "}
-        <button type="button" onClick={onCreateAccount} className="font-medium text-primary hover:underline">
+        <button
+          type="button"
+          onClick={onCreateAccount}
+          className="font-medium text-primary hover:underline"
+        >
           Create an account
         </button>
       </p>
-
-      <div className="space-y-2">
-        <p className="text-center text-xs text-muted-foreground">Quick login for testing</p>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => onQuickLogin("aisha.tan@student.edu")}
-            className="flex items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent/50 hover:text-foreground"
-          >
-            <Ticket className="size-4 shrink-0 text-primary" />
-            Participant
-          </button>
-          <button
-            type="button"
-            onClick={() => onQuickLogin("e.reyes@university.edu")}
-            className="flex items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent/50 hover:text-foreground"
-          >
-            <ClipboardList className="size-4 shrink-0 text-primary" />
-            Organizer
-          </button>
-        </div>
-      </div>
     </form>
   );
 }
@@ -177,11 +157,24 @@ function RegisterForm({
   onRegister,
 }: {
   onBack: () => void;
-  onRegister: (name: string, email: string) => void;
+  onRegister: (name: string, email: string, password: string) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    setLoading(true);
+    await onRegister(name, email, password);
+    setLoading(false);
+  };
 
   return (
     <div className="space-y-5">
@@ -189,13 +182,7 @@ function RegisterForm({
         <ArrowLeft className="size-4" /> Back to sign in
       </Button>
 
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onRegister(name, email);
-        }}
-      >
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Create your account</h1>
           <p className="text-sm text-muted-foreground">
@@ -208,7 +195,14 @@ function RegisterForm({
           <Label htmlFor="r-name">Full name</Label>
           <div className="relative">
             <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="r-name" className="pl-9" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input
+              id="r-name"
+              className="pl-9"
+              placeholder="Jane Doe"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
           </div>
         </div>
 
@@ -216,7 +210,15 @@ function RegisterForm({
           <Label htmlFor="r-email">Email</Label>
           <div className="relative">
             <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="r-email" type="email" className="pl-9" placeholder="you@university.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input
+              id="r-email"
+              type="email"
+              className="pl-9"
+              placeholder="you@university.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
         </div>
 
@@ -224,12 +226,37 @@ function RegisterForm({
           <Label htmlFor="r-password">Password</Label>
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="r-password" type="password" className="pl-9" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input
+              id="r-password"
+              type="password"
+              className="pl-9"
+              placeholder="Min. 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={8}
+              required
+            />
           </div>
         </div>
 
-        <Button type="submit" className="w-full">
-          Create account &amp; continue
+        <div className="space-y-2">
+          <Label htmlFor="r-confirm">Confirm password</Label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="r-confirm"
+              type="password"
+              className="pl-9"
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Creating account…" : "Create account & continue"}
         </Button>
       </form>
     </div>

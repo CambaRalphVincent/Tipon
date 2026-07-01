@@ -1,7 +1,7 @@
 // Mock data + domain types for the Event Registration System prototype.
 // Mirrors the DB diagram: users, events, registrations, notifications.
 
-export type UserRole = "participant" | "organizer";
+export type UserRole = "participant" | "organizer" | "admin";
 export type EventStatus = "open" | "cancelled";
 export type RegistrationStatus = "registered" | "cancelled";
 export type AttendanceStatus = "pending" | "present" | "absent";
@@ -28,6 +28,7 @@ export interface EventItem {
   capacity: number;
   status: EventStatus;
   cover_image_path: string;
+  registeredCount?: number;
 }
 
 export interface Registration {
