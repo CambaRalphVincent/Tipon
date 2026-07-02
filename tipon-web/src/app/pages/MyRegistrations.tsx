@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Link } from "react-router";
 import { CalendarDays, MapPin, Ticket } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { TriggerButton } from "../components/TriggerButton";
@@ -22,6 +21,7 @@ import {
   RegistrationStatusBadge,
 } from "../components/StatusBadge";
 import { formatEventDate, formatEventTime, isPast } from "../lib/format";
+import { LIVEWIRE_BASE_URL } from "../lib/api";
 import { useAppStore } from "../store/AppStore";
 import type { Registration } from "../data/mockData";
 
@@ -92,7 +92,7 @@ function RegistrationList({
         <Ticket className="size-9 text-muted-foreground" />
         <p className="font-medium">Nothing here yet</p>
         <Button variant="link" asChild>
-          <Link to="/events">Browse events</Link>
+          <a href={`${LIVEWIRE_BASE_URL}/events`}>Browse events</a>
         </Button>
       </div>
     );
@@ -109,9 +109,9 @@ function RegistrationList({
             <div className="flex flex-1 flex-col justify-between gap-3 p-4">
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link to={`/events/${event.id}`} className="font-medium hover:underline">
+                  <a href={`${LIVEWIRE_BASE_URL}/events/${event.id}`} className="font-medium hover:underline">
                     {event.title}
-                  </Link>
+                  </a>
                   <RegistrationStatusBadge status={reg.status} />
                   {showAttendance && <AttendanceBadge status={reg.attendance} />}
                 </div>
@@ -129,7 +129,7 @@ function RegistrationList({
               {cancellable && onCancel && (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" asChild>
-                    <Link to={`/events/${event.id}`}>View</Link>
+                    <a href={`${LIVEWIRE_BASE_URL}/events/${event.id}`}>View</a>
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

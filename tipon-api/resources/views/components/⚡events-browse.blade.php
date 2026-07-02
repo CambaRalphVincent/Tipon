@@ -1,0 +1,141 @@
+<?php
+
+use App\Models\Event;
+use Livewire\Attributes\Computed;
+use Livewire\Component;
+
+new class extends Component
+{
+    public string $query = '';
+
+    #[Computed]
+    public function events()
+    {
+        return Event::query()
+            ->with('organizer:id,name')
+            ->withCount(['registrations as registered_count' => fn ($q) => $q->where('status', 'registered')])
+            ->where('event_date', '>', now())
+            ->when($this->query, function ($q) {
+                $q->where(function ($q) {
+                    $q->where('title', 'like', "%{$this->query}%")
+                        ->orWhere('description', 'like', "%{$this->query}%")
+                        ->orWhere('venue', 'like', "%{$this->query}%");
+                });
+            })
+            ->orderBy('event_date')
+            ->get();
+    }
+
+    #[Computed]
+    public function myRegisteredEventIds()
+    {
+        return auth()->user()->registrations()
+            ->where('status', 'registered')
+            ->pluck('event_id')
+            ->all();
+    }
+};
+?>
+
+<div class="mx-auto max-w-7xl space-y-6">
+    <div>
+        <div class="mb-1 flex items-center gap-2.5">
+            <h1 class="text-[1.75rem] font-extrabold leading-none tracking-tight">Browse Events</h1>
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                <span class="inline-block size-1.5 animate-pulse rounded-full bg-primary"></span>
+                Live
+            </span>
+        </div>
+        <p class="text-sm text-muted-foreground">Discover upcoming seminars, workshops and academic events — and secure your slot.</p>
+    </div>
+
+    <div class="flex max-w-[30rem] items-center gap-3 rounded-xl border border-primary/10 bg-foreground/[0.03] px-4 py-2.5">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0 text-muted-foreground"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
+        <input
+            type="text"
+            wire:model.live.debounce.300ms="query"
+            placeholder="Search events, venues..."
+            class="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        >
+    </div>
+
+    @if (! $this->events->isEmpty())
+        <p class="text-xs text-muted-foreground">
+            Showing <span class="font-semibold text-foreground">{{ $this->events->count() }}</span>
+            event{{ $this->events->count() === 1 ? '' : 's' }}
+        </p>
+    @endif
+
+    @if ($this->events->isEmpty())
+        <div class="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-20 text-center">
+            <p class="font-medium">No events found</p>
+            <p class="text-sm text-muted-foreground">Try adjusting your search.</p>
+        </div>
+    @else
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach ($this->events as $event)
+                @php
+                    $filled = $event->registered_count;
+                    $capacity = $event->capacity;
+                    $pct = $capacity > 0 ? min(100, round(($filled / $capacity) * 100)) : 0;
+                    $full = $filled >= $capacity;
+                    $nearlyFull = $pct >= 80 && !$full;
+                    $barColor = $full ? 'bg-red-500' : ($nearlyFull ? 'bg-amber-500' : 'bg-emerald-500');
+                    $registered = in_array($event->id, $this->myRegisteredEventIds);
+                @endphp
+                <a
+                    wire:navigate
+                    wire:key="event-{{ $event->id }}"
+                    href="/events/{{ $event->id }}"
+                    class="group flex flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
+                >
+                    <div class="relative aspect-video overflow-hidden bg-muted">
+                        <img src="{{ $event->cover_image_path }}" alt="{{ $event->title }}" class="size-full object-cover transition-transform duration-300 group-hover:scale-105">
+                        @if ($event->status === 'cancelled')
+                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-red-500/30 bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400">Cancelled</span>
+                        @elseif ($registered)
+                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-transparent bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground">Registered</span>
+                        @elseif ($full)
+                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-red-500/30 bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400">Full</span>
+                        @endif
+                    </div>
+                    <div class="flex flex-1 flex-col gap-3 p-5">
+                        <div>
+                            <h3 class="mb-1 line-clamp-1 font-bold leading-tight tracking-tight">{{ $event->title }}</h3>
+                            <p class="line-clamp-2 text-sm text-muted-foreground">{{ $event->description }}</p>
+                        </div>
+                        <div class="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                            <div class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 shrink-0 text-primary"><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /><path d="M8 18h.01" /><path d="M12 18h.01" /><path d="M16 18h.01" /></svg>
+                                {{ $event->event_date->format('M j, Y \a\t g:i A') }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 shrink-0 text-primary"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
+                                {{ $event->venue }}
+                            </div>
+                        </div>
+                        <div class="mt-auto flex flex-col gap-3 pt-2">
+                            @if ($event->status !== 'cancelled')
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span><span class="font-semibold text-foreground">{{ $filled }}</span> / {{ $capacity }} registered</span>
+                                        <span class="{{ $full ? 'text-red-400' : ($nearlyFull ? 'text-amber-400' : '') }}">
+                                            {{ $full ? 'Full' : ($capacity - $filled) . ' left' }}
+                                        </span>
+                                    </div>
+                                    <div class="h-1 w-full overflow-hidden rounded-full bg-foreground/[0.07]">
+                                        <div class="h-full rounded-full transition-all {{ $barColor }}" style="width: {{ $pct }}%"></div>
+                                    </div>
+                                </div>
+                            @endif
+                            <div class="flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 py-2.5 text-sm font-semibold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                                View details
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 shrink-0"><path d="m9 18 6-6-6-6" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            @endforeach
+        </div>
+    @endif
+</div>

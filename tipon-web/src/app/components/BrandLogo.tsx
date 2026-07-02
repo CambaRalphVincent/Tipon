@@ -1,6 +1,5 @@
-import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { cn } from "./ui/utils";
-import tiponLogo from "../../assets/Tipon_Logo_2.png";
+import { TiponLogoIcon } from "./TiponLogoIcon";
 
 interface BrandLogoProps {
   /** horizontal — icon left, text right (sidebar) */
@@ -20,14 +19,11 @@ export function BrandLogo({ layout = "horizontal", className }: BrandLogoProps) 
         className,
       )}
     >
-      <ImageWithFallback
-        src={tiponLogo}
-        alt="Tipon logo"
+      <TiponLogoIcon
         className={cn(
-          "shrink-0 object-contain",
+          "shrink-0 text-foreground",
           isStacked ? "h-28 w-28" : "h-11 w-11",
         )}
-        style={{ filter: "invert(1) contrast(4)", mixBlendMode: "screen" }}
       />
       <div className={cn("leading-none", isStacked && "text-center")}>
         <p

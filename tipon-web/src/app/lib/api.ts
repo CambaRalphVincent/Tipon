@@ -1,16 +1,28 @@
 import axios from "axios";
 import type { AttendanceStatus, EventStatus, RegistrationStatus, UserRole } from "../data/mockData";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+// Sanctum's CSRF-cookie route lives at the app root, not under /api.
+const API_ROOT_URL = API_BASE_URL.replace(/\/api\/?$/, "");
+
+// The Livewire pages (/events, /events/:id) are served directly by
+// tipon-api, not the Vite dev server — links to them need to be absolute to
+// this origin rather than relative paths.
+export const LIVEWIRE_BASE_URL = API_ROOT_URL;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000/api",
+  baseURL: API_BASE_URL,
   headers: { Accept: "application/json" },
+  withCredentials: true,
+  withXSRFToken: true,
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+// Primes Laravel's XSRF-TOKEN cookie so the subsequent state-changing request
+// (login/register/verify) can carry a valid X-XSRF-TOKEN header. Only needed
+// once per fresh browser session — the cookie keeps refreshing itself on
+// every authenticated response afterward.
+const ensureCsrfCookie = () =>
+  axios.get(`${API_ROOT_URL}/sanctum/csrf-cookie`, { withCredentials: true });
 
 // ---------------------------------------------------------------------------
 // Raw API types (what Laravel returns)
@@ -70,12 +82,18 @@ export interface ApiNotification {
 // ---------------------------------------------------------------------------
 
 export const authApi = {
-  register: (data: { name: string; email: string; password: string; password_confirmation: string }) =>
-    api.post<{ message: string; email: string }>("/register", data),
-  login: (data: { email: string; password: string }) =>
-    api.post<{ user: ApiUser; token: string }>("/login", data),
-  verifyOtp: (data: { email: string; code: string }) =>
-    api.post<{ user: ApiUser; token: string }>("/email/verify", data),
+  register: async (data: { name: string; email: string; password: string; password_confirmation: string }) => {
+    await ensureCsrfCookie();
+    return api.post<{ message: string; email: string }>("/register", data);
+  },
+  login: async (data: { email: string; password: string }) => {
+    await ensureCsrfCookie();
+    return api.post<{ user: ApiUser; token: string }>("/login", data);
+  },
+  verifyOtp: async (data: { email: string; code: string }) => {
+    await ensureCsrfCookie();
+    return api.post<{ user: ApiUser; token: string }>("/email/verify", data);
+  },
   resendOtp: (data: { email: string }) => api.post<{ message: string }>("/email/resend", data),
   logout: () => api.post("/logout"),
   me: () => api.get<ApiUser>("/me"),

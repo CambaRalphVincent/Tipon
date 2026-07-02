@@ -18,15 +18,20 @@ import { NotificationBell } from "./NotificationBell";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { BrandLogo } from "./BrandLogo";
 import { useAppStore } from "../store/AppStore";
+import { LIVEWIRE_BASE_URL } from "../lib/api";
 
 interface NavItem {
   to: string;
   label: string;
   icon: typeof CalendarDays;
+  // True for routes served directly by tipon-api's Livewire pages (a
+  // different origin in dev) — these need a real, absolute-URL browser
+  // navigation, not React Router's client-side routing.
+  hardNavigate?: boolean;
 }
 
 const PARTICIPANT_NAV: NavItem[] = [
-  { to: "/events", label: "Browse Events", icon: CalendarDays },
+  { to: "/events", label: "Browse Events", icon: CalendarDays, hardNavigate: true },
   { to: "/my-registrations", label: "My Registrations", icon: Ticket },
 ];
 
@@ -47,27 +52,28 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col gap-6 p-4">
-      <Link to="/events" className="block px-2 py-1" onClick={onNavigate}>
+      <a href={`${LIVEWIRE_BASE_URL}/events`} className="block px-2 py-1" onClick={onNavigate}>
         <BrandLogo layout="horizontal" />
-      </Link>
+      </a>
 
       <nav className="flex flex-col gap-1">
         {items.map((item) => {
           const active =
             location.pathname === item.to ||
             (item.to !== "/organizer" && location.pathname.startsWith(item.to));
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-              )}
-            >
+          const linkClassName = cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            active
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+          );
+          return item.hardNavigate ? (
+            <a key={item.to} href={`${LIVEWIRE_BASE_URL}${item.to}`} onClick={onNavigate} className={linkClassName}>
+              <item.icon className="size-4" />
+              {item.label}
+            </a>
+          ) : (
+            <Link key={item.to} to={item.to} onClick={onNavigate} className={linkClassName}>
               <item.icon className="size-4" />
               {item.label}
             </Link>

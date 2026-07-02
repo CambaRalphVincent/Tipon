@@ -214,11 +214,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Auto-login on mount if a valid token exists in localStorage
+  // Auto-login on mount by asking the API who the session cookie belongs to.
+  // No client-side token check needed — the browser sends the session cookie
+  // automatically, and a 401 here just means "not logged in."
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { setInitialized(true); return; }
-
     authApi.me()
       .then(async (res) => {
         const user = adaptUser(res.data);
@@ -226,7 +225,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         mergeUsers([user]);
         await loadAppData(user);
       })
-      .catch(() => localStorage.removeItem("token"))
+      .catch(() => {})
       .finally(() => setInitialized(true));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -238,9 +237,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       const res = await authApi.login({ email, password });
-      const { user: apiUser, token } = res.data;
-      localStorage.setItem("token", token);
-      const user = adaptUser(apiUser);
+      const user = adaptUser(res.data.user);
       setCurrentUser(user);
       mergeUsers([user]);
       await loadAppData(user);
@@ -279,9 +276,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const verifyEmailOtp = async (email: string, code: string): Promise<LoginResult> => {
     try {
       const res = await authApi.verifyOtp({ email, code });
-      const { user: apiUser, token } = res.data;
-      localStorage.setItem("token", token);
-      const user = adaptUser(apiUser);
+      const user = adaptUser(res.data.user);
       setCurrentUser(user);
       mergeUsers([user]);
       await loadAppData(user);
@@ -311,7 +306,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try { await authApi.logout(); } catch { /* proceed even if API fails */ }
-    localStorage.removeItem("token");
     setCurrentUser(null);
     setUsers([]);
     setEvents([]);

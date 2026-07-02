@@ -46,11 +46,20 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($data)) {
+        // 'web' guard, explicit — once a request has been authenticated via
+        // auth:sanctum, Sanctum's middleware switches Laravel's *default*
+        // guard to 'sanctum' for the rest of the request (via
+        // Auth::shouldUse()), so an unqualified Auth::attempt() would
+        // silently operate on the wrong (stateless) guard.
+        //
+        // once() validates credentials without touching the session at all —
+        // safe to call even when this request has no session store attached
+        // (a bearer-token client, e.g. a future mobile app, won't).
+        if (!Auth::guard('web')->once($data)) {
             return response()->json(['message' => 'Invalid credentials.'], 401);
         }
 
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
 
         if (!$user->email_verified_at) {
             return response()->json([
@@ -58,6 +67,16 @@ class AuthController extends Controller
                 'requires_verification' => true,
                 'email'                => $user->email,
             ], 403);
+        }
+
+        // Only a browser (stateful) request has a session attached at all —
+        // Sanctum's middleware attaches one only when the Origin/Referer
+        // matches a configured stateful domain. Establish a real persisted
+        // session for that case; a bearer-token client skips this entirely
+        // and just gets the token below.
+        if ($request->hasSession()) {
+            Auth::guard('web')->login($user);
+            $request->session()->regenerate();
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -92,6 +111,11 @@ class AuthController extends Controller
             'email_verification_code_expires_at' => null,
         ]);
 
+        if ($request->hasSession()) {
+            Auth::guard('web')->login($user);
+            $request->session()->regenerate();
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -122,10 +146,24 @@ class AuthController extends Controller
         return response()->json(['message' => 'Verification code resent.']);
     }
 
-    // FR-04 — Revoke the current token (logout).
+    // FR-04 — Logout. Revokes the bearer token if one was used, and tears
+    // down the session if one was active. A session-authenticated request's
+    // "current access token" is a TransientToken (Sanctum's placeholder for
+    // that case), which has no delete() method — only a real
+    // PersonalAccessToken (bearer-token auth) needs revoking here.
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()->currentAccessToken();
+
+        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $token->delete();
+        }
+
+        if ($request->hasSession()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json(['message' => 'Logged out successfully.']);
     }
