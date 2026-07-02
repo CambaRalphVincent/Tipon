@@ -12,9 +12,10 @@ class DatabaseSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'admin@tipon.com'],
             [
-                'name'     => 'System Admin',
-                'password' => 'password',
-                'role'     => 'admin',
+                'name'              => 'System Admin',
+                'password'          => 'password',
+                'role'              => 'admin',
+                'email_verified_at' => now(),
             ]
         );
     }

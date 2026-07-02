@@ -16,10 +16,7 @@ import {
 import { CalendarDays, CheckCircle2, Users, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { TriggerButton } from "../components/TriggerButton";
 import { StatCard } from "../components/StatCard";
-import { EventFormDialog } from "../components/EventFormDialog";
-import { Plus } from "lucide-react";
 import { useAppStore } from "../store/AppStore";
 
 export function OrganizerDashboard() {
@@ -55,20 +52,11 @@ export function OrganizerDashboard() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Real-time overview of your events, registrations and attendance.
-          </p>
-        </div>
-        <EventFormDialog
-          trigger={
-            <TriggerButton>
-              <Plus className="size-4" /> Create event
-            </TriggerButton>
-          }
-        />
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Real-time overview of your events, registrations and attendance.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

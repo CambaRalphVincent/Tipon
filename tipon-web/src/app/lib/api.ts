@@ -71,9 +71,12 @@ export interface ApiNotification {
 
 export const authApi = {
   register: (data: { name: string; email: string; password: string; password_confirmation: string }) =>
-    api.post<{ user: ApiUser; token: string }>("/register", data),
+    api.post<{ message: string; email: string }>("/register", data),
   login: (data: { email: string; password: string }) =>
     api.post<{ user: ApiUser; token: string }>("/login", data),
+  verifyOtp: (data: { email: string; code: string }) =>
+    api.post<{ user: ApiUser; token: string }>("/email/verify", data),
+  resendOtp: (data: { email: string }) => api.post<{ message: string }>("/email/resend", data),
   logout: () => api.post("/logout"),
   me: () => api.get<ApiUser>("/me"),
 };

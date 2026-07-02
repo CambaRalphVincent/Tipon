@@ -94,6 +94,8 @@ interface NewEventInput {
 interface LoginResult {
   ok: boolean;
   role?: UserRole;
+  requiresVerification?: boolean;
+  email?: string;
 }
 
 interface AppStoreValue {
@@ -102,6 +104,8 @@ interface AppStoreValue {
   role: UserRole;
   login: (email: string, password: string) => Promise<LoginResult>;
   registerParticipant: (name: string, email: string, password: string) => Promise<LoginResult>;
+  verifyEmailOtp: (email: string, code: string) => Promise<LoginResult>;
+  resendVerificationCode: (email: string) => Promise<boolean>;
   logout: () => Promise<void>;
 
   users: User[];
@@ -135,6 +139,8 @@ const defaultContextValue: AppStoreValue = {
   role: "participant",
   login: async () => ({ ok: false }),
   registerParticipant: async () => ({ ok: false }),
+  verifyEmailOtp: async () => ({ ok: false }),
+  resendVerificationCode: async () => false,
   logout: async () => {},
   users: [],
   events: [],
@@ -240,10 +246,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       await loadAppData(user);
       return { ok: true, role: user.role };
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Invalid credentials.";
-      toast.error(msg);
+      const errData = (
+        err as { response?: { status?: number; data?: { message?: string; requires_verification?: boolean; email?: string } } }
+      )?.response;
+      if (errData?.status === 403 && errData.data?.requires_verification) {
+        return { ok: false, requiresVerification: true, email: errData.data.email ?? email };
+      }
+      toast.error(errData?.data?.message ?? "Invalid credentials.");
       return { ok: false };
     }
   };
@@ -255,13 +264,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   ): Promise<LoginResult> => {
     try {
       const res = await authApi.register({ name, email, password, password_confirmation: password });
-      const { user: apiUser, token } = res.data;
-      localStorage.setItem("token", token);
-      const user = adaptUser(apiUser);
-      setCurrentUser(user);
-      mergeUsers([user]);
-      await loadAppData(user);
-      return { ok: true, role: user.role };
+      return { ok: true, requiresVerification: true, email: res.data.email };
     } catch (err: unknown) {
       const errData = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })
         ?.response?.data;
@@ -270,6 +273,39 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         : (errData?.message ?? "Registration failed.");
       toast.error(msg);
       return { ok: false };
+    }
+  };
+
+  const verifyEmailOtp = async (email: string, code: string): Promise<LoginResult> => {
+    try {
+      const res = await authApi.verifyOtp({ email, code });
+      const { user: apiUser, token } = res.data;
+      localStorage.setItem("token", token);
+      const user = adaptUser(apiUser);
+      setCurrentUser(user);
+      mergeUsers([user]);
+      await loadAppData(user);
+      return { ok: true, role: user.role };
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Invalid or expired code.";
+      toast.error(msg);
+      return { ok: false };
+    }
+  };
+
+  const resendVerificationCode = async (email: string): Promise<boolean> => {
+    try {
+      await authApi.resendOtp({ email });
+      toast.success("Verification code resent.");
+      return true;
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Failed to resend code.";
+      toast.error(msg);
+      return false;
     }
   };
 
@@ -476,6 +512,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     role,
     login,
     registerParticipant,
+    verifyEmailOtp,
+    resendVerificationCode,
     logout,
     users,
     events,

@@ -261,13 +261,16 @@ function CreateOrganizerDialog({
                 id="co-password"
                 type="password"
                 className="pl-9"
-                placeholder="Min. 8 characters"
+                placeholder="Min. 8 chars, upper/lowercase, number, symbol"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={8}
                 required
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Must include an uppercase letter, a lowercase letter, a number, and a symbol.
+            </p>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

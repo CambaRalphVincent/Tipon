@@ -32,6 +32,11 @@ interface FormState {
 const DEFAULT_COVER =
   "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80";
 
+const MAX_THUMBNAIL_BYTES = 2 * 1024 * 1024; // 2 MB
+const ALLOWED_THUMBNAIL_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_TITLE_LENGTH = 100;
+const MAX_DESCRIPTION_LENGTH = 1000;
+
 const emptyForm: FormState = {
   title: "",
   description: "",
@@ -67,7 +72,7 @@ export function EventFormDialog({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
-  const { createEvent, updateEvent } = useAppStore();
+  const { currentUser, events, createEvent, updateEvent } = useAppStore();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : uncontrolledOpen;
@@ -101,12 +106,22 @@ export function EventFormDialog({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
+
+    if (!ALLOWED_THUMBNAIL_TYPES.includes(file.type)) {
+      toast.error("Only JPG, PNG, or WEBP images are allowed.");
+      return;
+    }
+    if (file.size > MAX_THUMBNAIL_BYTES) {
+      toast.error("Image must be 2 MB or smaller.");
+      return;
+    }
+
     // Show a local preview immediately while the upload runs.
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     const blobUrl = URL.createObjectURL(file);
     objectUrlRef.current = blobUrl;
     set("cover_image_path", blobUrl);
-    e.target.value = "";
 
     // Upload to server in the background.
     setUploading(true);
@@ -117,8 +132,11 @@ export function EventFormDialog({
         objectUrlRef.current = null;
         set("cover_image_path", res.data.url);
       })
-      .catch(() => {
-        toast.error("Image upload failed. Please try again.");
+      .catch((err: unknown) => {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+          "Image upload failed. Please try again.";
+        toast.error(msg);
         if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
         set("cover_image_path", "");
@@ -134,7 +152,21 @@ export function EventFormDialog({
     set("cover_image_path", "");
   };
 
-  const valid = form.title.trim() && form.venue.trim() && form.date && form.capacity > 0 && !uploading;
+  const isDuplicateTitle = events.some(
+    (e) =>
+      e.organizerId === currentUser?.id &&
+      e.status === "open" &&
+      e.id !== event?.id &&
+      e.title.trim().toLowerCase() === form.title.trim().toLowerCase(),
+  );
+
+  const valid =
+    form.title.trim() &&
+    form.venue.trim() &&
+    form.date &&
+    form.capacity > 0 &&
+    !uploading &&
+    !isDuplicateTitle;
 
   const submit = () => {
     if (!valid) return;
@@ -173,7 +205,7 @@ export function EventFormDialog({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="hidden"
               onChange={handleFileChange}
             />
@@ -217,29 +249,57 @@ export function EventFormDialog({
               >
                 <ImagePlus className="size-8" />
                 <span className="text-sm font-medium">Click to upload thumbnail</span>
-                <span className="text-xs">PNG, JPG, WEBP up to any size</span>
+                <span className="text-xs">PNG, JPG, or WEBP — up to 2 MB</span>
               </button>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="title">Title</Label>
+              <span
+                className={cn(
+                  "text-xs",
+                  form.title.length >= MAX_TITLE_LENGTH ? "text-red-500" : "text-muted-foreground",
+                )}
+              >
+                {form.title.length}/{MAX_TITLE_LENGTH}
+              </span>
+            </div>
             <Input
               id="title"
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               placeholder="e.g. Introduction to Machine Learning"
+              maxLength={MAX_TITLE_LENGTH}
             />
+            {isDuplicateTitle && (
+              <p className="text-xs text-red-500">
+                You already have an active event with this title. Cancel that event first, or
+                choose a different title.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="description">Description</Label>
+              <span
+                className={cn(
+                  "text-xs",
+                  form.description.length >= MAX_DESCRIPTION_LENGTH ? "text-red-500" : "text-muted-foreground",
+                )}
+              >
+                {form.description.length}/{MAX_DESCRIPTION_LENGTH}
+              </span>
+            </div>
             <Textarea
               id="description"
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
               placeholder="What is this event about?"
               rows={3}
+              maxLength={MAX_DESCRIPTION_LENGTH}
             />
           </div>
 

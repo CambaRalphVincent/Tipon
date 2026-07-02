@@ -26,14 +26,15 @@ class AdminController extends Controller
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', Password::min(8)],
+            'password' => ['required', Password::min(8)->mixedCase()->numbers()->symbols()],
         ]);
 
         $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => $data['password'],
-            'role'     => 'organizer',
+            'name'              => $data['name'],
+            'email'             => $data['email'],
+            'password'          => $data['password'],
+            'role'              => 'organizer',
+            'email_verified_at' => now(),
         ]);
 
         return response()->json($user, 201);

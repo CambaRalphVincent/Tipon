@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 // Public
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/email/verify', [AuthController::class, 'verifyEmail']);
+Route::post('/email/resend', [AuthController::class, 'resendVerificationCode'])->middleware('throttle:3,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
