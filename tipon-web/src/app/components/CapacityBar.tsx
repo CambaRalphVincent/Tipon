@@ -15,11 +15,11 @@ export function CapacityBar({ filled, capacity, className, showLabel = true }: C
   return (
     <div className={cn("space-y-1.5", className)}>
       {showLabel && (
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span className="whitespace-nowrap">
             {filled} / {capacity} registered
           </span>
-          <span className={cn(full && "text-red-400", nearlyFull && "text-amber-400")}>
+          <span className={cn("whitespace-nowrap", full && "text-red-400", nearlyFull && "text-amber-400")}>
             {full ? "Full" : `${capacity - filled} left`}
           </span>
         </div>

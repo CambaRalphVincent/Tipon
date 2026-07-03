@@ -157,7 +157,7 @@ export function EventFormDialog({
       e.organizerId === currentUser?.id &&
       e.status === "open" &&
       e.id !== event?.id &&
-      e.title.trim().toLowerCase() === form.title.trim().toLowerCase(),
+      e.title?.trim().toLowerCase() === form.title.trim().toLowerCase(),
   );
 
   const valid =

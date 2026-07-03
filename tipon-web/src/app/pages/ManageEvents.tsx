@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { ListChecks, MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { TriggerButton } from "../components/TriggerButton";
 import { Card } from "../components/ui/card";
 import {
@@ -40,13 +40,14 @@ export function ManageEvents() {
   const { currentUser, events, confirmedCountFor, cancelEvent } = useAppStore();
   const [editing, setEditing] = useState<EventItem | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<EventItem | null>(null);
+  const organizerId = currentUser?.id;
 
   const myEvents = useMemo(
     () =>
       events
-        .filter((e) => e.organizerId === currentUser.id)
+        .filter((e) => e.organizerId === organizerId)
         .sort((a, b) => +new Date(b.eventDate) - +new Date(a.eventDate)),
-    [events, currentUser.id],
+    [events, organizerId],
   );
 
   return (
@@ -65,70 +66,90 @@ export function ManageEvents() {
         />
       </div>
 
-      <Card className="overflow-hidden py-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Event</TableHead>
-              <TableHead className="hidden md:table-cell">Date</TableHead>
-              <TableHead className="hidden w-48 lg:table-cell">Capacity</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {myEvents.map((e) => {
-              const filled = confirmedCountFor(e.id);
-              return (
-                <TableRow
-                  key={e.id}
-                  className="cursor-pointer"
-                  onClick={() => navigate(`/organizer/events/${e.id}`)}
-                >
-                  <TableCell>
-                    <div className="font-medium">{e.title}</div>
-                    <div className="text-xs text-muted-foreground">{e.venue}</div>
-                  </TableCell>
-                  <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
-                    {formatEventDate(e.eventDate)}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <CapacityBar filled={filled} capacity={e.capacity} />
-                  </TableCell>
-                  <TableCell>
-                    <EventStatusBadge status={e.status} />
-                  </TableCell>
-                  <TableCell onClick={(ev) => ev.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <TriggerButton variant="ghost" size="icon">
-                          <MoreHorizontal className="size-4" />
-                        </TriggerButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/organizer/events/${e.id}`)}>
-                          <Users className="size-4" /> View registrants
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditing(e)}>
-                          <Pencil className="size-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          variant="destructive"
-                          disabled={e.status === "cancelled"}
-                          onClick={() => setConfirmCancel(e)}
-                        >
-                          <Trash2 className="size-4" /> Cancel event
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </Card>
+      {myEvents.length === 0 ? (
+        <Card className="border-dashed border-primary/15">
+          <div className="flex min-h-[22rem] flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+            <div className="flex size-12 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
+              <ListChecks className="size-6" />
+            </div>
+            <div className="max-w-md space-y-2">
+              <h2 className="text-xl font-bold tracking-tight">No events yet</h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Use Create event to publish your first event and start accepting registrations.
+              </p>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden py-0">
+          <Table className="table-fixed">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Event</TableHead>
+                <TableHead className="hidden w-40 md:table-cell">Date</TableHead>
+                <TableHead className="hidden w-56 lg:table-cell">Capacity</TableHead>
+                <TableHead className="w-28">Status</TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {myEvents.map((e) => {
+                const filled = confirmedCountFor(e.id);
+                return (
+                  <TableRow
+                    key={e.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/organizer/events/${e.id}`)}
+                  >
+                    <TableCell className="min-w-0 pr-6">
+                      <div className="max-w-full truncate font-medium leading-snug" title={e.title}>
+                        {e.title}
+                      </div>
+                      <div className="truncate text-xs text-muted-foreground" title={e.venue}>
+                        {e.venue}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden whitespace-nowrap text-sm text-muted-foreground md:table-cell">
+                      {formatEventDate(e.eventDate)}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <CapacityBar filled={filled} capacity={e.capacity} />
+                    </TableCell>
+                    <TableCell>
+                      <EventStatusBadge status={e.status} />
+                    </TableCell>
+                    <TableCell onClick={(ev) => ev.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <TriggerButton variant="ghost" size="icon">
+                            <MoreHorizontal className="size-4" />
+                          </TriggerButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => navigate(`/organizer/events/${e.id}`)}>
+                            <Users className="size-4" /> View registrants
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditing(e)}>
+                            <Pencil className="size-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            variant="destructive"
+                            disabled={e.status === "cancelled"}
+                            onClick={() => setConfirmCancel(e)}
+                          >
+                            <Trash2 className="size-4" /> Cancel event
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
 
       {/* Edit dialog (controlled, opened from the dropdown) */}
       {editing && (

@@ -39,12 +39,8 @@ new class extends Component
 
 <div class="mx-auto max-w-7xl space-y-6">
     <div>
-        <div class="mb-1 flex items-center gap-2.5">
+        <div class="mb-1">
             <h1 class="text-[1.75rem] font-extrabold leading-none tracking-tight">Browse Events</h1>
-            <span class="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                <span class="inline-block size-1.5 animate-pulse rounded-full bg-primary"></span>
-                Live
-            </span>
         </div>
         <p class="text-sm text-muted-foreground">Discover upcoming seminars, workshops and academic events — and secure your slot.</p>
     </div>
@@ -67,9 +63,20 @@ new class extends Component
     @endif
 
     @if ($this->events->isEmpty())
-        <div class="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-20 text-center">
-            <p class="font-medium">No events found</p>
-            <p class="text-sm text-muted-foreground">Try adjusting your search.</p>
+        <div class="flex min-h-[20rem] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border px-6 py-20 text-center">
+            <div class="flex size-10 items-center justify-center text-muted-foreground">
+                @if (trim($query) === '')
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-10"><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /><path d="m9.5 14.5 5 5" /><path d="m14.5 14.5-5 5" /></svg>
+                @else
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-10"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /><path d="m8.5 8.5 5 5" /><path d="m13.5 8.5-5 5" /></svg>
+                @endif
+            </div>
+            <div class="space-y-1">
+                <p class="font-medium">{{ trim($query) === '' ? 'No events yet' : 'No events found' }}</p>
+                <p class="text-sm text-muted-foreground">
+                    {{ trim($query) === '' ? 'Upcoming events will appear here once organizers publish them.' : 'Try adjusting your search.' }}
+                </p>
+            </div>
         </div>
     @else
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

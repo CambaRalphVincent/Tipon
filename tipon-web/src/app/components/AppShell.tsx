@@ -48,13 +48,32 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { role, currentUser, logout } = useAppStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const displayName = currentUser?.name ?? "User";
+  const initials = displayName
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2);
   const items = role === "admin" ? ADMIN_NAV : role === "organizer" ? ORGANIZER_NAV : PARTICIPANT_NAV;
+  const homeHref =
+    role === "admin"
+      ? "/admin"
+      : role === "organizer"
+        ? "/organizer"
+        : `${LIVEWIRE_BASE_URL}/events`;
+  const logo = <BrandLogo layout="horizontal" />;
 
   return (
     <div className="flex h-full flex-col gap-6 p-4">
-      <a href={`${LIVEWIRE_BASE_URL}/events`} className="block px-2 py-1" onClick={onNavigate}>
-        <BrandLogo layout="horizontal" />
-      </a>
+      {role === "participant" ? (
+        <a href={homeHref} className="block px-2 py-1" onClick={onNavigate}>
+          {logo}
+        </a>
+      ) : (
+        <Link to={homeHref} className="block px-2 py-1" onClick={onNavigate}>
+          {logo}
+        </Link>
+      )}
 
       <nav className="flex flex-col gap-1">
         {items.map((item) => {
@@ -62,10 +81,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             location.pathname === item.to ||
             (item.to !== "/organizer" && location.pathname.startsWith(item.to));
           const linkClassName = cn(
-            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            "flex items-center gap-3 rounded-xl border px-3 py-2 text-sm transition-colors",
             active
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              ? "border-primary/20 bg-primary/10 font-medium text-primary"
+              : "border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground",
           );
           return item.hardNavigate ? (
             <a key={item.to} href={`${LIVEWIRE_BASE_URL}${item.to}`} onClick={onNavigate} className={linkClassName}>
@@ -85,19 +104,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <Separator />
         <div className="flex items-center gap-3 px-2">
           <Avatar className="size-9">
-            <AvatarFallback>
-              {currentUser.name.split(" ").map((p) => p[0]).join("").slice(0, 2)}
+            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-xs font-bold text-primary-foreground">
+              {initials}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-medium">{currentUser.name}</p>
+            <p className="truncate text-sm font-medium">{displayName}</p>
             <p className="truncate text-xs capitalize text-muted-foreground">{role}</p>
           </div>
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="w-full justify-start"
+          className="w-full justify-start rounded-xl px-3 py-2"
           onClick={async () => {
             onNavigate?.();
             await logout();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Lock, Mail, Search, User, Users } from "lucide-react";
+import { type LucideIcon, Lock, Mail, Search, ShieldCheck, User, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -32,9 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
-import { StatCard } from "../components/StatCard";
 import { adminApi, type ApiUser } from "../lib/api";
-import { LayoutDashboard } from "lucide-react";
 
 export function AdminDashboard() {
   const [users, setUsers] = useState<ApiUser[]>([]);
@@ -72,10 +70,18 @@ export function AdminDashboard() {
   const organizerCount = users.filter((u) => u.role === "organizer").length;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">User Management</h1>
+          <div className="mb-1 flex flex-wrap items-center gap-2.5">
+            <h1 className="text-[1.75rem] font-extrabold leading-none tracking-tight">
+              User Management
+            </h1>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+              <span className="inline-block size-1.5 rounded-full bg-primary" />
+              Admin
+            </span>
+          </div>
           <p className="text-sm text-muted-foreground">
             Manage participant and organizer accounts.
           </p>
@@ -83,46 +89,47 @@ export function AdminDashboard() {
         <CreateOrganizerDialog onCreate={handleCreateOrganizer} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCard label="Participants" value={participantCount} icon={Users} accent="text-primary" />
-        <StatCard
-          label="Organizers"
-          value={organizerCount}
-          icon={LayoutDashboard}
-          accent="text-sky-400"
-        />
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <h2 className="font-medium">All Users ({filtered.length})</h2>
-          <div className="relative sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search users…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex max-w-[30rem] items-center gap-3 rounded-xl border border-primary/10 bg-foreground/[0.03] px-4 py-2.5">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
         </div>
 
-        <Card className="overflow-hidden py-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden sm:table-cell">Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="hidden md:table-cell">Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <CountPill icon={Users} label="Participants" value={participantCount} />
+          <CountPill icon={ShieldCheck} label="Organizers" value={organizerCount} />
+          <CountPill label="Showing" value={filtered.length} />
+        </div>
+      </div>
+
+      <Card className="overflow-hidden rounded-2xl border-primary/10 py-0">
+        <div className="flex items-center justify-between border-b px-4 py-3 sm:px-5">
+          <h2 className="text-sm font-bold tracking-tight">All Users</h2>
+          <p className="text-xs text-muted-foreground">
+            {users.length} total account{users.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-foreground/[0.02] hover:bg-foreground/[0.02]">
+              <TableHead className="px-4 py-3 sm:px-5">Name</TableHead>
+              <TableHead className="hidden px-4 py-3 sm:table-cell">Email</TableHead>
+              <TableHead className="px-4 py-3">Role</TableHead>
+              <TableHead className="hidden px-4 py-3 md:table-cell">Joined</TableHead>
+              <TableHead className="px-4 py-3 text-right sm:px-5">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                    Loading users…
+                    Loading users...
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
@@ -134,23 +141,23 @@ export function AdminDashboard() {
               ) : (
                 filtered.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
+                    <TableCell className="px-4 py-4 font-bold sm:px-5">{user.name}</TableCell>
+                    <TableCell className="hidden px-4 py-4 text-sm text-muted-foreground sm:table-cell">
                       {user.email}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-4">
                       <Badge variant={user.role === "organizer" ? "default" : "secondary"}>
                         {user.role}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
+                    <TableCell className="hidden px-4 py-4 text-sm text-muted-foreground md:table-cell">
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="px-4 py-4 text-right sm:px-5">
                       {user.role === "participant" && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="rounded-xl">
                               Promote
                             </Button>
                           </AlertDialogTrigger>
@@ -159,8 +166,8 @@ export function AdminDashboard() {
                               <AlertDialogTitle>Promote to organizer?</AlertDialogTitle>
                               <AlertDialogDescription>
                                 {user.name} will be able to create and manage events. They will
-                                lose participant access — including any existing registrations —
-                                and will no longer be able to register for events.
+                                lose participant access, including any existing registrations, and
+                                will no longer be able to register for events.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -176,11 +183,28 @@ export function AdminDashboard() {
                   </TableRow>
                 ))
               )}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
     </div>
+  );
+}
+
+function CountPill({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon?: LucideIcon;
+  label: string;
+  value: number;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/10 bg-foreground/[0.03] px-3 py-1.5">
+      {Icon && <Icon className="size-3.5 text-primary" />}
+      <span>{label}</span>
+      <span className="font-semibold text-foreground">{value}</span>
+    </span>
   );
 }
 
@@ -215,8 +239,8 @@ function CreateOrganizerDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <User className="size-4" /> New Organizer
+        <Button className="rounded-xl">
+          <UserPlus className="size-4" /> New Organizer
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -277,7 +301,7 @@ function CreateOrganizerDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Creating…" : "Create organizer"}
+              {loading ? "Creating..." : "Create organizer"}
             </Button>
           </div>
         </form>

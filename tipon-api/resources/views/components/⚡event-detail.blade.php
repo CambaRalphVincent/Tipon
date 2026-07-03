@@ -102,7 +102,7 @@ new class extends Component
 };
 ?>
 
-<div class="mx-auto max-w-5xl space-y-6" x-data="{ showCancelConfirm: false, showRegisterConfirm: false }">
+<div class="w-full max-w-none space-y-6" x-data="{ showCancelConfirm: false, showRegisterConfirm: false }">
     <a wire:navigate href="/events" class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 shrink-0"><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></svg>
         Back to events
@@ -124,11 +124,11 @@ new class extends Component
         $registered = (bool) $this->myRegistration;
     @endphp
 
-    <div class="flex flex-col gap-7 lg:flex-row lg:items-start">
+    <div class="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start">
         {{-- Left: main content --}}
         <div class="min-w-0 flex-1 space-y-7">
             {{-- Hero banner --}}
-            <div class="relative overflow-hidden rounded-2xl" style="height: 260px">
+            <div class="relative overflow-hidden rounded-2xl border border-primary/10" style="height: 260px">
                 <img src="{{ $event->cover_image_path }}" alt="{{ $event->title }}" class="absolute inset-0 size-full object-cover">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
                 <div class="absolute bottom-0 left-0 right-0 space-y-2 px-6 pb-5">
@@ -149,9 +149,9 @@ new class extends Component
             </div>
 
             {{-- About --}}
-            <section>
-                <h2 class="mb-2 font-bold tracking-tight" style="font-family: 'Bricolage Grotesque', sans-serif;">About this event</h2>
-                <p class="leading-relaxed text-muted-foreground">{{ $event->description }}</p>
+            <section class="rounded-2xl border border-primary/10 bg-card/40 p-5">
+                <h2 class="mb-3 text-lg font-bold tracking-tight" style="font-family: 'Bricolage Grotesque', sans-serif;">About this event</h2>
+                <p class="max-w-[82ch] whitespace-pre-line text-base leading-8 text-muted-foreground">{{ $event->description }}</p>
             </section>
 
             {{-- Info grid --}}
@@ -196,7 +196,7 @@ new class extends Component
         </div>
 
         {{-- Right: registration panel --}}
-        <div class="w-full shrink-0 space-y-4 lg:sticky lg:top-6 lg:w-80">
+        <div class="w-full shrink-0 space-y-4 lg:sticky lg:top-24">
             <div class="overflow-hidden rounded-2xl border border-primary/10 bg-card shadow-xl">
                 @if ($event->status !== 'cancelled')
                     <div class="space-y-1.5 border-b border-primary/10 px-5 pb-4 pt-5">
@@ -271,30 +271,36 @@ new class extends Component
         </div>
     </div>
 
-    {{-- Cancel-registration confirmation — replicates the React app's
-         AlertDialog (Radix-based) exactly, in place of Livewire's default
-         wire:confirm, which just triggers the browser's native confirm()
-         popup. --}}
+    {{-- Cancel-registration confirmation: styled to match the app's dark dialog pattern. --}}
     <div x-show="showCancelConfirm" x-cloak class="fixed inset-0 z-50">
-        <div class="fixed inset-0 bg-black/50" @click="showCancelConfirm = false"></div>
-        <div class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-border bg-background p-6 shadow-lg sm:max-w-lg">
-            <div class="flex flex-col gap-2 text-center sm:text-left">
-                <h2 class="text-lg font-semibold">Cancel your registration?</h2>
-                <p class="text-sm text-muted-foreground">
-                    This frees your slot for "{{ $event->title }}". You can register again later if space is available.
-                </p>
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-[2px]" @click="showCancelConfirm = false"></div>
+        <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-2xl border border-primary/10 bg-card shadow-2xl sm:max-w-[30rem]">
+            <div class="space-y-4 p-6">
+                <div class="space-y-2">
+                    <div class="flex size-10 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 text-red-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></svg>
+                    </div>
+                    <h2 class="text-xl font-bold tracking-tight" style="font-family: 'Bricolage Grotesque', sans-serif;">Cancel your registration?</h2>
+                    <p class="text-sm leading-relaxed text-muted-foreground">
+                        Your slot for <span class="font-medium text-foreground">"{{ $event->title }}"</span> will be released. You can register again later if space is available.
+                    </p>
+                </div>
+                <div class="rounded-xl border border-primary/10 bg-foreground/[0.03] px-4 py-3 text-sm text-muted-foreground">
+                    <p class="font-medium text-foreground">{{ $event->event_date->format('M j, Y \a\t g:i A') }}</p>
+                    <p>{{ $event->venue }}</p>
+                </div>
             </div>
-            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div class="flex flex-col-reverse gap-2 border-t border-primary/10 bg-foreground/[0.02] p-4 sm:flex-row sm:justify-end">
                 <button
                     @click="showCancelConfirm = false"
-                    class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                    class="inline-flex items-center justify-center rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/10 hover:bg-accent hover:text-foreground focus-visible:border-primary/30 focus-visible:text-foreground"
                 >
                     Keep registration
                 </button>
                 <button
                     wire:click="cancelRegistration"
                     @click="showCancelConfirm = false"
-                    class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    class="inline-flex items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/15 focus-visible:ring-2 focus-visible:ring-red-500/30"
                 >
                     Cancel registration
                 </button>
@@ -302,31 +308,38 @@ new class extends Component
         </div>
     </div>
 
-    {{-- Register confirmation — same styled-modal treatment as cancellation,
-         for a consistent confirm-before-action pattern on both. --}}
+    {{-- Register confirmation: confirms the commitment and repeats the event details. --}}
     <div x-show="showRegisterConfirm" x-cloak class="fixed inset-0 z-50">
-        <div class="fixed inset-0 bg-black/50" @click="showRegisterConfirm = false"></div>
-        <div class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-border bg-background p-6 shadow-lg sm:max-w-lg">
-            <div class="flex flex-col gap-2 text-center sm:text-left">
-                <h2 class="text-lg font-semibold">Register for this event?</h2>
-                <p class="text-sm text-muted-foreground">
-                    You're about to register for "{{ $event->title }}". You can cancel your registration
-                    later from this page if your plans change.
-                </p>
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-[2px]" @click="showRegisterConfirm = false"></div>
+        <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-2xl border border-primary/10 bg-card shadow-2xl sm:max-w-[30rem]">
+            <div class="space-y-4 p-6">
+                <div class="space-y-2">
+                    <div class="flex size-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></svg>
+                    </div>
+                    <h2 class="text-xl font-bold tracking-tight" style="font-family: 'Bricolage Grotesque', sans-serif;">Register for this event?</h2>
+                    <p class="text-sm leading-relaxed text-muted-foreground">
+                        You're reserving a seat for <span class="font-medium text-foreground">"{{ $event->title }}"</span>. You can cancel your registration later if your plans change.
+                    </p>
+                </div>
+                <div class="rounded-xl border border-primary/10 bg-foreground/[0.03] px-4 py-3 text-sm text-muted-foreground">
+                    <p class="font-medium text-foreground">{{ $event->event_date->format('M j, Y \a\t g:i A') }}</p>
+                    <p>{{ $event->venue }}</p>
+                </div>
             </div>
-            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div class="flex flex-col-reverse gap-2 border-t border-primary/10 bg-foreground/[0.02] p-4 sm:flex-row sm:justify-end">
                 <button
                     @click="showRegisterConfirm = false"
-                    class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                    class="inline-flex items-center justify-center rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/10 hover:bg-accent hover:text-foreground focus-visible:border-primary/30 focus-visible:text-foreground"
                 >
                     Cancel
                 </button>
                 <button
                     wire:click="register"
                     @click="showRegisterConfirm = false"
-                    class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
-                    Register now
+                    Confirm registration
                 </button>
             </div>
         </div>

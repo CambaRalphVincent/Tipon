@@ -11,7 +11,7 @@ export function EventStatusBadge({ status }: { status: EventStatus }) {
     open: { label: "Open", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     cancelled: { label: "Cancelled", className: "bg-red-500/15 text-red-400 border-red-500/30" },
   };
-  const cfg = map[status];
+  const cfg = map[status] ?? { label: "Unknown", className: "bg-muted text-muted-foreground border-border" };
   return <Badge variant="outline" className={cn(cfg.className)}>{cfg.label}</Badge>;
 }
 

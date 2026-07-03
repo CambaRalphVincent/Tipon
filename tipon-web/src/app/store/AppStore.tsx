@@ -39,6 +39,19 @@ function adaptUser(u: ApiUser | { id: number; name: string; email: string; role?
   };
 }
 
+function isApiEvent(e: unknown): e is ApiEvent {
+  if (!e || typeof e !== "object") return false;
+  const event = e as Partial<ApiEvent>;
+  return (
+    typeof event.id === "number" &&
+    typeof event.organizer_id === "number" &&
+    typeof event.title === "string" &&
+    typeof event.venue === "string" &&
+    typeof event.event_date === "string" &&
+    typeof event.capacity === "number"
+  );
+}
+
 function adaptEvent(e: ApiEvent): EventItem {
   return {
     id: String(e.id),
@@ -48,9 +61,9 @@ function adaptEvent(e: ApiEvent): EventItem {
     venue: e.venue,
     eventDate: e.event_date,
     capacity: e.capacity,
-    status: e.status,
+    status: e.status ?? "open",
     cover_image_path: e.cover_image_path ?? "",
-    registeredCount: e.registered_count,
+    registeredCount: e.registered_count ?? 0,
   };
 }
 
@@ -397,13 +410,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         const res = await eventsApi.create({
-          title: input.title,
-          description: input.description,
-          venue: input.venue,
+        title: input.title,
+        description: input.description,
+        venue: input.venue,
           event_date: input.eventDate,
           capacity: input.capacity,
           cover_image_path: input.cover_image_path?.startsWith("blob:") ? undefined : input.cover_image_path,
         });
+        if (!isApiEvent(res.data)) {
+          const eventsRes = await eventsApi.all();
+          setEvents(eventsRes.data.filter(isApiEvent).map(adaptEvent));
+          toast.success("Event created");
+          return;
+        }
         const adapted = { ...adaptEvent(res.data), registeredCount: 0 };
         setEvents((prev) => [adapted, ...prev]);
         toast.success(`Event "${adapted.title}" created`);
@@ -427,6 +446,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           capacity: input.capacity,
           cover_image_path: input.cover_image_path?.startsWith("blob:") ? undefined : input.cover_image_path,
         });
+        if (!isApiEvent(res.data)) {
+          const eventsRes = await eventsApi.all();
+          setEvents(eventsRes.data.filter(isApiEvent).map(adaptEvent));
+          toast.success("Event updated");
+          return;
+        }
         const adapted = adaptEvent(res.data);
         setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, ...adapted } : e)));
         toast.success("Event updated");

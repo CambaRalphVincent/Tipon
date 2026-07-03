@@ -41,9 +41,12 @@ class EventController extends Controller
             return response()->json(['message' => 'You already have an active event with this title.'], 422);
         }
 
+        $data['status'] = 'open';
         $event = $request->user()->organizedEvents()->create($data);
+        $event->load('organizer:id,name')
+            ->loadCount(['registrations as registered_count' => fn($q) => $q->where('status', 'registered')]);
 
-        return response()->json($event->load('organizer:id,name'), 201);
+        return response()->json($event, 201);
     }
 
     // FR-05 — Organizer updates their own event.
@@ -71,8 +74,10 @@ class EventController extends Controller
         }
 
         $event->update($data);
+        $event->load('organizer:id,name')
+            ->loadCount(['registrations as registered_count' => fn($q) => $q->where('status', 'registered')]);
 
-        return response()->json($event->load('organizer:id,name'));
+        return response()->json($event);
     }
 
     // Cancels the event by setting status to cancelled.

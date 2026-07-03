@@ -1,9 +1,8 @@
 import { useMemo } from "react";
-import { CalendarDays, MapPin, Ticket } from "lucide-react";
+import { CalendarDays, ChevronRight, MapPin, Ticket } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { TriggerButton } from "../components/TriggerButton";
-import { Card, CardContent } from "../components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,82 +15,108 @@ import {
   AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import {
-  AttendanceBadge,
-  RegistrationStatusBadge,
-} from "../components/StatusBadge";
+import { AttendanceBadge, RegistrationStatusBadge } from "../components/StatusBadge";
+import { CapacityBar } from "../components/CapacityBar";
+import { cn } from "../components/ui/utils";
 import { formatEventDate, formatEventTime, isPast } from "../lib/format";
 import { LIVEWIRE_BASE_URL } from "../lib/api";
 import { useAppStore } from "../store/AppStore";
-import type { Registration } from "../data/mockData";
+import type { EventItem, Registration } from "../data/mockData";
+
+interface RegItem {
+  reg: Registration;
+  event: EventItem;
+}
 
 export function MyRegistrations() {
-  const { currentUser, registrations, eventById, cancelRegistration } = useAppStore();
+  const { currentUser, registrations, eventById, cancelRegistration, confirmedCountFor } = useAppStore();
+  const currentUserId = currentUser?.id ?? "";
 
   const mine = useMemo(
     () =>
       registrations
-        .filter((r) => r.userId === currentUser.id)
-        .map((r) => ({ reg: r, event: eventById(r.eventId)! }))
-        .filter((x) => x.event)
+        .filter((r) => r.userId === currentUserId)
+        .map((r) => ({ reg: r, event: eventById(r.eventId) }))
+        .filter((x): x is RegItem => Boolean(x.event))
         .sort((a, b) => +new Date(b.event.eventDate) - +new Date(a.event.eventDate)),
-    [registrations, currentUser.id, eventById],
+    [registrations, currentUserId, eventById],
   );
 
   const upcoming = mine.filter((x) => x.reg.status === "registered" && !isPast(x.event.eventDate));
   const past = mine.filter((x) => isPast(x.event.eventDate) && x.reg.status === "registered");
   const cancelled = mine.filter((x) => x.reg.status === "cancelled");
+  const totalActive = upcoming.length + past.length;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">My Registrations</h1>
-        <p className="text-muted-foreground">Track the events you've signed up for.</p>
+        <div className="mb-1">
+          <h1 className="text-[1.75rem] font-extrabold leading-none tracking-tight">My Registrations</h1>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Track your confirmed, attended, and cancelled event registrations in one place.
+        </p>
       </div>
 
       <Tabs defaultValue="upcoming">
-        <TabsList>
-          <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
-          <TabsTrigger value="past">Past ({past.length})</TabsTrigger>
-          <TabsTrigger value="cancelled">Cancelled ({cancelled.length})</TabsTrigger>
+        <TabsList className="h-auto flex-wrap gap-1 bg-foreground/[0.03] p-1">
+          <TabsTrigger value="upcoming" className="rounded-lg px-3 py-1.5">
+            Upcoming ({upcoming.length})
+          </TabsTrigger>
+          <TabsTrigger value="past" className="rounded-lg px-3 py-1.5">
+            Past ({past.length})
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" className="rounded-lg px-3 py-1.5">
+            Cancelled ({cancelled.length})
+          </TabsTrigger>
         </TabsList>
 
+        {mine.length > 0 && (
+          <p className="mt-4 text-xs text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{mine.length}</span> registration
+            {mine.length === 1 ? "" : "s"} with{" "}
+            <span className="font-semibold text-foreground">{totalActive}</span> active.
+          </p>
+        )}
+
         <TabsContent value="upcoming" className="mt-4">
-          <RegistrationList items={upcoming} onCancel={cancelRegistration} cancellable />
+          <RegistrationList
+            items={upcoming}
+            confirmedCountFor={confirmedCountFor}
+            onCancel={cancelRegistration}
+            cancellable
+          />
         </TabsContent>
         <TabsContent value="past" className="mt-4">
-          <RegistrationList items={past} showAttendance />
+          <RegistrationList items={past} confirmedCountFor={confirmedCountFor} showAttendance />
         </TabsContent>
         <TabsContent value="cancelled" className="mt-4">
-          <RegistrationList items={cancelled} />
+          <RegistrationList items={cancelled} confirmedCountFor={confirmedCountFor} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-interface RegItem {
-  reg: Registration;
-  event: ReturnType<ReturnType<typeof useAppStore>["eventById"]>;
-}
-
 function RegistrationList({
   items,
+  confirmedCountFor,
   onCancel,
   cancellable = false,
   showAttendance = false,
 }: {
-  items: { reg: Registration; event: NonNullable<RegItem["event"]> }[];
+  items: RegItem[];
+  confirmedCountFor: (eventId: string) => number;
   onCancel?: (eventId: string) => void;
   cancellable?: boolean;
   showAttendance?: boolean;
 }) {
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center">
+      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-20 text-center">
         <Ticket className="size-9 text-muted-foreground" />
         <p className="font-medium">Nothing here yet</p>
-        <Button variant="link" asChild>
+        <Button variant="link" className="h-auto p-0" asChild>
           <a href={`${LIVEWIRE_BASE_URL}/events`}>Browse events</a>
         </Button>
       </div>
@@ -99,65 +124,121 @@ function RegistrationList({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {items.map(({ reg, event }) => (
-        <Card key={reg.id} className="overflow-hidden py-0">
-          <CardContent className="flex flex-col gap-4 p-0 sm:flex-row">
-            <div className="h-32 w-full shrink-0 bg-muted sm:h-auto sm:w-44">
-              <ImageWithFallback src={event.cover_image_path} alt={event.title} className="size-full object-cover" />
-            </div>
-            <div className="flex flex-1 flex-col justify-between gap-3 p-4">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <a href={`${LIVEWIRE_BASE_URL}/events/${event.id}`} className="font-medium hover:underline">
-                    {event.title}
-                  </a>
-                  <RegistrationStatusBadge status={reg.status} />
-                  {showAttendance && <AttendanceBadge status={reg.attendance} />}
-                </div>
-                <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-4">
-                  <span className="flex items-center gap-1.5">
-                    <CalendarDays className="size-4" />
-                    {formatEventDate(event.eventDate)} · {formatEventTime(event.eventDate)}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="size-4" />
-                    {event.venue}
-                  </span>
-                </div>
-              </div>
-              {cancellable && onCancel && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`${LIVEWIRE_BASE_URL}/events/${event.id}`}>View</a>
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <TriggerButton variant="ghost" size="sm">
-                        Cancel
-                      </TriggerButton>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Cancel your registration?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This frees your slot for "{event.title}".
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Keep</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onCancel(event.id)}>
-                          Cancel registration
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <RegistrationCard
+          key={reg.id}
+          reg={reg}
+          event={event}
+          filled={confirmedCountFor(event.id)}
+          cancellable={cancellable}
+          showAttendance={showAttendance}
+          onCancel={onCancel}
+        />
       ))}
     </div>
+  );
+}
+
+function RegistrationCard({
+  reg,
+  event,
+  filled,
+  cancellable,
+  showAttendance,
+  onCancel,
+}: {
+  reg: Registration;
+  event: EventItem;
+  filled: number;
+  cancellable: boolean;
+  showAttendance: boolean;
+  onCancel?: (eventId: string) => void;
+}) {
+  const cancelled = reg.status === "cancelled" || event.status === "cancelled";
+  const full = filled >= event.capacity;
+  const nearlyFull = event.capacity > 0 && Math.round((filled / event.capacity) * 100) >= 80 && !full;
+
+  return (
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl">
+      <a href={`${LIVEWIRE_BASE_URL}/events/${event.id}`} className="relative aspect-video overflow-hidden bg-muted">
+        <ImageWithFallback
+          src={event.cover_image_path}
+          alt={event.title}
+          className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+        <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
+          <RegistrationStatusBadge status={reg.status} />
+          {showAttendance && <AttendanceBadge status={reg.attendance} />}
+        </div>
+      </a>
+
+      <div className="flex flex-1 flex-col gap-3 p-5">
+        <div>
+          <h3 className="mb-1 line-clamp-1 font-bold leading-tight tracking-tight">
+            <a href={`${LIVEWIRE_BASE_URL}/events/${event.id}`} className="hover:text-primary">
+              {event.title}
+            </a>
+          </h3>
+          <p className="line-clamp-2 text-sm text-muted-foreground">{event.description}</p>
+        </div>
+
+        <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="size-3.5 shrink-0 text-primary" />
+            <span>
+              {formatEventDate(event.eventDate)} at {formatEventTime(event.eventDate)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="size-3.5 shrink-0 text-primary" />
+            <span className="line-clamp-1">{event.venue}</span>
+          </div>
+        </div>
+
+        <div className="mt-auto flex flex-col gap-3 pt-2">
+          {!cancelled && <CapacityBar filled={filled} capacity={event.capacity} className="[&_>div:last-child]:h-1" />}
+
+          <div className="flex gap-2">
+            <a
+              href={`${LIVEWIRE_BASE_URL}/events/${event.id}`}
+              className={cn(
+                "flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                cancelled && "border-border bg-muted text-muted-foreground group-hover:bg-muted group-hover:text-foreground",
+              )}
+            >
+              View details
+              <ChevronRight className="size-3.5 shrink-0" />
+            </a>
+
+            {cancellable && onCancel && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <TriggerButton
+                    variant="outline"
+                    size="sm"
+                    className="min-h-10 rounded-xl border-red-500/20 px-3 text-red-400 transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 focus-visible:ring-2 focus-visible:ring-red-500/30 active:bg-red-500/15"
+                  >
+                    Cancel
+                  </TriggerButton>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel your registration?</AlertDialogTitle>
+                    <AlertDialogDescription>This frees your slot for "{event.title}".</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onCancel(event.id)}>Cancel registration</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+
+          {nearlyFull && !cancelled && <p className="text-xs font-medium text-amber-400">Limited slots remaining</p>}
+        </div>
+      </div>
+    </article>
   );
 }

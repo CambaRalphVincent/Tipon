@@ -103,6 +103,15 @@ Tipon/
   login and registration got a show/hide toggle. A compact logo now also appears
   on mobile, where the brand panel is hidden — previously mobile visitors saw no
   branding on this screen at all.
+- **Dashboards & lists** — the rounded-2xl / hover-lift card language and pill-style
+  buttons introduced above were extended to the rest of the authenticated app:
+  `AdminDashboard.tsx` (search bar with icon, `CountPill` chips for
+  Participants/Organizers/Showing counts, restyled user table), `ManageEvents.tsx`
+  and `OrganizerDashboard.tsx` (empty states with a call-to-action when an organizer
+  has no events yet, instead of a bare empty table/chart area), and
+  `MyRegistrations.tsx` (registration list rebuilt as a card grid matching the
+  Browse Events cards, with a `CapacityBar` and a pill "View details" button, instead
+  of the previous single-column list).
 
 ## Database Schema
 
@@ -168,7 +177,8 @@ composer run dev
 ```
 
 `composer run dev` runs the API server, queue listener, log tailer (Pail), and Vite
-dev server together. To run just the API: `php artisan serve`.
+dev server together. To run just the API: `php artisan serve`. On Windows, use
+`composer run dev:win` instead — the same setup minus the Pail log tailer.
 
 Seeded admin login: `admin@tipon.com` / `password`.
 
@@ -330,3 +340,16 @@ which is exactly what the auth and cross-origin sections above ran into.
 - Registration capacity checks are transaction-safe under concurrent load
   (row-level locking).
 - Responsive UI targeting Chrome, Firefox, and Edge.
+- `EventController::store()`/`update()` now reload and return `registered_count`
+  on the created/updated event (previously omitted, so the frontend received an
+  incomplete event shape right after a create/edit). `AppStore.tsx` also added a
+  runtime `isApiEvent()` guard around both calls: if a response ever doesn't match
+  the expected shape, it falls back to refetching the full event list instead of
+  storing malformed data.
+- Defensive null-safety fixes across `AppShell.tsx`, `ManageEvents.tsx`,
+  `OrganizerDashboard.tsx`, `MyRegistrations.tsx`, and `StatusBadge.tsx` so a
+  momentarily-null `currentUser` (during initial auth check) or an unrecognized
+  status value renders a safe fallback instead of crashing the page.
+- `AppShell.tsx`'s sidebar logo/home link now routes by role (admin → `/admin`,
+  organizer → `/organizer`, participant → Livewire's `/events`) — previously it
+  always linked to the Livewire events page regardless of who was logged in.
