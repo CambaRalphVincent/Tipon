@@ -10,6 +10,7 @@ export function EventStatusBadge({ status }: { status: EventStatus }) {
   const map: Record<EventStatus, { label: string; className: string }> = {
     open: { label: "Open", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     cancelled: { label: "Cancelled", className: "bg-red-500/15 text-red-400 border-red-500/30" },
+    completed: { label: "Completed", className: "bg-slate-500/15 text-slate-300 border-slate-500/30" },
   };
   const cfg = map[status] ?? { label: "Unknown", className: "bg-muted text-muted-foreground border-border" };
   return <Badge variant="outline" className={cn(cfg.className)}>{cfg.label}</Badge>;

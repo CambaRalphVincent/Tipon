@@ -19,7 +19,7 @@ class EventDetail extends Component
 
     public function mount(Event $event): void
     {
-        $this->event = $event;
+        $this->event = $event->refreshCompletionStatus();
     }
 
     public function openRegisterConfirm(): void
@@ -73,8 +73,15 @@ class EventDetail extends Component
     {
         $this->closeRegisterConfirm();
 
-        if ($this->event->status !== 'open') {
+        $this->event->refreshCompletionStatus();
+
+        if ($this->event->status !== Event::STATUS_OPEN) {
             session()->flash('error', 'Event is not open for registration.');
+            return;
+        }
+
+        if ($this->isPast) {
+            session()->flash('error', 'Event has already ended.');
             return;
         }
 
@@ -86,6 +93,14 @@ class EventDetail extends Component
         try {
             DB::transaction(function () {
                 $locked = Event::lockForUpdate()->findOrFail($this->event->id);
+
+                if ($locked->status !== Event::STATUS_OPEN || $locked->event_date->isPast()) {
+                    if ($locked->status === Event::STATUS_OPEN && $locked->event_date->isPast()) {
+                        $locked->update(['status' => Event::STATUS_COMPLETED]);
+                    }
+
+                    throw new \RuntimeException('Event is not open for registration.');
+                }
 
                 if ($locked->registrations()->where('status', 'registered')->count() >= $locked->capacity) {
                     throw new \RuntimeException('Event is at full capacity.');
@@ -134,6 +149,13 @@ class EventDetail extends Component
         $registration = $this->myRegistration;
 
         if (! $registration) {
+            return;
+        }
+
+        $this->event->refreshCompletionStatus();
+
+        if ($this->isPast || $this->event->status === Event::STATUS_COMPLETED) {
+            session()->flash('error', 'Registration can no longer be cancelled after the event date.');
             return;
         }
 

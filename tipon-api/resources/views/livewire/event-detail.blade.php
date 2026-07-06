@@ -31,6 +31,8 @@
                     <div class="flex items-center gap-2">
                         @if ($event->status === 'cancelled')
                             <span class="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/20 px-2.5 py-0.5 text-xs font-semibold text-red-400">Cancelled</span>
+                        @elseif ($event->status === 'completed')
+                            <span class="inline-flex items-center rounded-full border border-slate-500/30 bg-slate-500/20 px-2.5 py-0.5 text-xs font-semibold text-slate-300">Completed</span>
                         @elseif ($registered)
                             <span class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-2.5 shrink-0"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
@@ -136,6 +138,8 @@
                         @endif
                     @elseif ($event->status === 'cancelled')
                         <div class="flex w-full cursor-not-allowed items-center justify-center rounded-xl bg-foreground/[0.04] py-3 text-sm font-semibold text-muted-foreground">Event cancelled</div>
+                    @elseif ($event->status === 'completed')
+                        <div class="flex w-full cursor-not-allowed items-center justify-center rounded-xl bg-foreground/[0.04] py-3 text-sm font-semibold text-muted-foreground">Event completed</div>
                     @elseif ($this->isPast)
                         <div class="flex w-full cursor-not-allowed items-center justify-center rounded-xl bg-foreground/[0.04] py-3 text-sm font-semibold text-muted-foreground">Event has ended</div>
                     @elseif ($this->isFull)
@@ -211,7 +215,7 @@
     </dialog>
     @endif
 
-    @if (! $registered && $event->status !== 'cancelled' && ! $this->isPast && ! $this->isFull)
+    @if (! $registered && $event->status === 'open' && ! $this->isPast && ! $this->isFull)
     <dialog id="register-event-dialog" class="fixed left-1/2 top-1/2 m-0 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-primary/10 bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-[2px] sm:max-w-[30rem]">
         <div class="overflow-hidden rounded-2xl">
             <div class="space-y-4 p-6">

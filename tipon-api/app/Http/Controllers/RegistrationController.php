@@ -15,7 +15,9 @@ class RegistrationController extends Controller
 {
     public function storePage(Request $request, Event $event): RedirectResponse
     {
-        if ($event->status !== 'open') {
+        $event->refreshCompletionStatus();
+
+        if ($event->status !== Event::STATUS_OPEN) {
             return back()->with('error', 'Event is not open for registration.');
         }
 
@@ -35,6 +37,14 @@ class RegistrationController extends Controller
         try {
             DB::transaction(function () use ($event, $request) {
                 $locked = Event::lockForUpdate()->findOrFail($event->id);
+
+                if ($locked->status !== Event::STATUS_OPEN || $locked->event_date->isPast()) {
+                    if ($locked->status === Event::STATUS_OPEN && $locked->event_date->isPast()) {
+                        $locked->update(['status' => Event::STATUS_COMPLETED]);
+                    }
+
+                    throw new \RuntimeException('Event is not open for registration.');
+                }
 
                 if ($locked->registrations()->where('status', 'registered')->count() >= $locked->capacity) {
                     throw new \RuntimeException('Event is at full capacity.');
@@ -61,6 +71,8 @@ class RegistrationController extends Controller
 
     public function cancelForEventPage(Request $request, Event $event): RedirectResponse
     {
+        $event->refreshCompletionStatus();
+
         $registration = Registration::where('event_id', $event->id)
             ->where('user_id', $request->user()->id)
             ->where('status', 'registered')
@@ -68,6 +80,10 @@ class RegistrationController extends Controller
 
         if (! $registration) {
             return back()->with('error', 'No active registration was found for this event.');
+        }
+
+        if ($event->event_date->isPast() || $event->status === Event::STATUS_COMPLETED) {
+            return back()->with('error', 'Registration can no longer be cancelled after the event date.');
         }
 
         $registration->update(['status' => 'cancelled']);
@@ -84,6 +100,8 @@ class RegistrationController extends Controller
     // Organizer views all registrations across all their events.
     public function organizerRegistrations(Request $request): JsonResponse
     {
+        Event::completePastOpenEvents();
+
         $eventIds = $request->user()->organizedEvents()->pluck('id');
 
         $registrations = Registration::whereIn('event_id', $eventIds)
@@ -96,6 +114,8 @@ class RegistrationController extends Controller
     // FR-09 — Organizer views the registrant list for an event.
     public function index(Event $event): JsonResponse
     {
+        $event->refreshCompletionStatus();
+
         $registrations = $event->registrations()
             ->where('status', 'registered')
             ->with('user:id,name,email')
@@ -107,6 +127,8 @@ class RegistrationController extends Controller
     // Participant views their own registrations.
     public function myRegistrations(Request $request): JsonResponse
     {
+        Event::completePastOpenEvents();
+
         $registrations = $request->user()
             ->registrations()
             ->with('event')
@@ -118,8 +140,14 @@ class RegistrationController extends Controller
     // FR-07 — Participant registers for an event.
     public function store(Request $request, Event $event): JsonResponse
     {
-        if ($event->status !== 'open') {
+        $event->refreshCompletionStatus();
+
+        if ($event->status !== Event::STATUS_OPEN) {
             return response()->json(['message' => 'Event is not open for registration.'], 422);
+        }
+
+        if ($event->event_date->isPast()) {
+            return response()->json(['message' => 'Event has already ended.'], 422);
         }
 
         $alreadyRegistered = Registration::where('event_id', $event->id)
@@ -135,6 +163,14 @@ class RegistrationController extends Controller
             $registration = DB::transaction(function () use ($event, $request) {
                 // FR-17 — Lock the event row to prevent concurrent over-registration.
                 $locked = Event::lockForUpdate()->findOrFail($event->id);
+
+                if ($locked->status !== Event::STATUS_OPEN || $locked->event_date->isPast()) {
+                    if ($locked->status === Event::STATUS_OPEN && $locked->event_date->isPast()) {
+                        $locked->update(['status' => Event::STATUS_COMPLETED]);
+                    }
+
+                    throw new \RuntimeException('Event is not open for registration.');
+                }
 
                 if ($locked->registrations()->where('status', 'registered')->count() >= $locked->capacity) {
                     throw new \RuntimeException('Event is at full capacity.');
@@ -161,6 +197,13 @@ class RegistrationController extends Controller
     {
         if ($registration->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $registration->loadMissing('event');
+        $registration->event->refreshCompletionStatus();
+
+        if ($registration->event->event_date->isPast() || $registration->event->status === Event::STATUS_COMPLETED) {
+            return response()->json(['message' => 'Registration can no longer be cancelled after the event date.'], 422);
         }
 
         $registration->update(['status' => 'cancelled']);

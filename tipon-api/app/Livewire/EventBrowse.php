@@ -18,9 +18,12 @@ class EventBrowse extends Component
     #[Computed]
     public function events()
     {
+        Event::completePastOpenEvents();
+
         return Event::query()
             ->with('organizer:id,name')
             ->withCount(['registrations as registered_count' => fn ($q) => $q->where('status', 'registered')])
+            ->where('status', Event::STATUS_OPEN)
             ->where('event_date', '>', now())
             ->when($this->query, function ($q) {
                 $q->where(function ($q) {

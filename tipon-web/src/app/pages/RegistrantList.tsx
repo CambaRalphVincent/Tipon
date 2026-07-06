@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeft, Check, Pencil, Search, UserX, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, CheckCircle2, Pencil, Search, Users, UserX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -24,7 +24,6 @@ import { EventFormDialog } from "../components/EventFormDialog";
 import { cn } from "../components/ui/utils";
 import { formatEventDate, formatEventTime } from "../lib/format";
 import { adaptRegistration, useAppStore } from "../store/AppStore";
-import { CalendarDays, CheckCircle2, Users } from "lucide-react";
 import { registrationsApi } from "../lib/api";
 import type { Registration, User, UserRole } from "../data/mockData";
 import type { ApiRegistration } from "../lib/api";
@@ -101,7 +100,7 @@ export function RegistrantList() {
   const absent = rows.filter((x) => x.reg.attendance === "absent").length;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-5">
       <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate(-1)}>
         <ArrowLeft className="size-4" /> Back
       </Button>
@@ -112,36 +111,47 @@ export function RegistrantList() {
             <h1 className="text-2xl font-semibold tracking-tight">{event.title}</h1>
             <EventStatusBadge status={event.status} />
           </div>
-          <p className="text-muted-foreground">
-            {formatEventDate(event.eventDate)} · {formatEventTime(event.eventDate)} · {event.venue}
+          <p className="text-sm text-muted-foreground">
+            {formatEventDate(event.eventDate)} at {formatEventTime(event.eventDate)} - {event.venue}
           </p>
         </div>
-        <EventFormDialog
-          event={event}
-          trigger={
-            <Button variant="outline">
-              <Pencil className="size-4" /> Edit event
-            </Button>
-          }
-        />
+        {event.status === "completed" ? (
+          <Button variant="outline" disabled>
+            Completed event
+          </Button>
+        ) : (
+          <EventFormDialog
+            event={event}
+            trigger={
+              <Button variant="outline">
+                <Pencil className="size-4" /> Edit event
+              </Button>
+            }
+          />
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Registered" value={`${filled} / ${event.capacity}`} icon={Users} accent="text-primary" />
         <StatCard label="Present" value={present} icon={CheckCircle2} accent="text-emerald-400" />
         <StatCard label="Absent" value={absent} icon={UserX} accent="text-red-400" />
         <StatCard label="Remaining slots" value={Math.max(0, event.capacity - filled)} icon={CalendarDays} accent="text-sky-400" />
       </div>
 
-      <Card>
-        <CardContent className="p-5">
+      <Card className="gap-0">
+        <CardContent className="p-4">
           <CapacityBar filled={filled} capacity={event.capacity} />
         </CardContent>
       </Card>
 
       <div className="space-y-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <h2 className="font-medium">Registrants ({filteredRows.length})</h2>
+          <div>
+            <h2 className="text-lg font-semibold">Registrants ({filteredRows.length})</h2>
+            <p className="text-xs text-muted-foreground">
+              Record attendance for confirmed participants.
+            </p>
+          </div>
           <div className="relative sm:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -155,19 +165,27 @@ export function RegistrantList() {
 
         <Card className="overflow-hidden py-0">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Participant</TableHead>
-                <TableHead className="hidden md:table-cell">Registered</TableHead>
-                <TableHead>Attendance</TableHead>
-                <TableHead className="text-right">Record</TableHead>
+            <TableHeader className="bg-muted/20">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="h-8 px-3 text-xs uppercase tracking-normal text-muted-foreground">
+                  Participant
+                </TableHead>
+                <TableHead className="hidden h-8 px-3 text-xs uppercase tracking-normal text-muted-foreground md:table-cell">
+                  Registered
+                </TableHead>
+                <TableHead className="h-8 px-3 text-xs uppercase tracking-normal text-muted-foreground">
+                  Attendance
+                </TableHead>
+                <TableHead className="h-8 px-3 text-right text-xs uppercase tracking-normal text-muted-foreground">
+                  Record
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
-                    Loading registrants…
+                    Loading registrants...
                   </TableCell>
                 </TableRow>
               ) : filteredRows.length === 0 ? (
@@ -178,8 +196,8 @@ export function RegistrantList() {
                 </TableRow>
               ) : (
                 filteredRows.map(({ reg, user }) => (
-                  <TableRow key={reg.id}>
-                    <TableCell>
+                  <TableRow key={reg.id} className="hover:bg-accent/30">
+                    <TableCell className="px-3 py-2.5">
                       <div className="flex items-center gap-3">
                         <Avatar className="size-8">
                           <AvatarFallback className="text-xs">
@@ -192,13 +210,13 @@ export function RegistrantList() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
+                    <TableCell className="hidden px-3 py-2.5 text-sm text-muted-foreground md:table-cell">
                       {formatEventDate(reg.createdAt)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3 py-2.5">
                       <AttendanceBadge status={reg.attendance} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3 py-2.5">
                       <div className="flex justify-end gap-1.5">
                         <Button
                           variant="outline"

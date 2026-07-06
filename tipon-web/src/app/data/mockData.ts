@@ -2,7 +2,7 @@
 // Mirrors the DB diagram: users, events, registrations, notifications.
 
 export type UserRole = "participant" | "organizer" | "admin";
-export type EventStatus = "open" | "cancelled";
+export type EventStatus = "open" | "cancelled" | "completed";
 export type RegistrationStatus = "registered" | "cancelled";
 export type AttendanceStatus = "pending" | "present" | "absent";
 export type NotificationType =
@@ -183,7 +183,7 @@ export const events: EventItem[] = [
     venue: "Robotics Lab",
     eventDate: daysFromNow(-4),
     capacity: 50,
-    status: "open",
+    status: "completed",
     cover_image_path: COVERS.robotics,
   },
   {

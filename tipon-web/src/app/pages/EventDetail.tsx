@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { TriggerButton } from "../components/TriggerButton";
-import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
 import {
   AlertDialog,
@@ -51,10 +50,11 @@ export function EventDetail() {
   const full = isFull(event.id);
   const registered = !!registrationFor(event.id);
   const cancelled = event.status === "cancelled";
+  const completed = event.status === "completed";
   const past = isPast(event.eventDate);
   const organizer = userById(event.organizerId);
 
-  const canRegister = !registered && !full && !cancelled && !past;
+  const canRegister = !registered && !full && event.status === "open" && !past;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -68,7 +68,7 @@ export function EventDetail() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 space-y-2 p-6">
             <div className="flex flex-wrap items-center gap-2">
-              {cancelled && <EventStatusBadge status="cancelled" />}
+              {(cancelled || completed) && <EventStatusBadge status={event.status} />}
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">{event.title}</h1>
           </div>
@@ -133,7 +133,7 @@ export function EventDetail() {
                     <CheckCircle2 className="size-4" />
                     You're registered
                   </div>
-                  {!past && (
+                  {event.status === "open" && !past && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <TriggerButton variant="outline" className="w-full">
@@ -161,6 +161,10 @@ export function EventDetail() {
               ) : cancelled ? (
                 <Button disabled className="w-full">
                   Event cancelled
+                </Button>
+              ) : completed ? (
+                <Button disabled className="w-full">
+                  Event completed
                 </Button>
               ) : past ? (
                 <Button disabled className="w-full">

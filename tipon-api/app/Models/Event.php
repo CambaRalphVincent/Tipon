@@ -11,6 +11,10 @@ class Event extends Model
 {
     use HasFactory;
 
+    public const STATUS_OPEN = 'open';
+    public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_COMPLETED = 'completed';
+
     protected $fillable = [
         'organizer_id',
         'title',
@@ -37,5 +41,23 @@ class Event extends Model
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
+    }
+
+    public static function completePastOpenEvents(): int
+    {
+        return static::query()
+            ->where('status', self::STATUS_OPEN)
+            ->where('event_date', '<=', now())
+            ->update(['status' => self::STATUS_COMPLETED]);
+    }
+
+    public function refreshCompletionStatus(): self
+    {
+        if ($this->status === self::STATUS_OPEN && $this->event_date->isPast()) {
+            $this->update(['status' => self::STATUS_COMPLETED]);
+            $this->refresh();
+        }
+
+        return $this;
     }
 }

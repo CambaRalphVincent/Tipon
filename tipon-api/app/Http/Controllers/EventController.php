@@ -22,6 +22,8 @@ class EventController extends Controller
     // FR-06 — All authenticated users can browse events.
     public function index(): JsonResponse
     {
+        Event::completePastOpenEvents();
+
         $events = Event::with('organizer:id,name')
             ->withCount(['registrations as registered_count' => fn($q) => $q->where('status', 'registered')])
             ->get();
@@ -31,6 +33,8 @@ class EventController extends Controller
 
     public function show(Event $event): JsonResponse
     {
+        $event->refreshCompletionStatus();
+
         $event->loadCount(['registrations as registered_count' => fn($q) => $q->where('status', 'registered')]);
 
         return response()->json($event->load('organizer:id,name'));
@@ -63,8 +67,14 @@ class EventController extends Controller
     // FR-05 — Organizer updates their own event.
     public function update(Request $request, Event $event): JsonResponse
     {
+        $event->refreshCompletionStatus();
+
         if ($event->organizer_id !== $request->user()->id) {
             return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($event->status === Event::STATUS_COMPLETED) {
+            return response()->json(['message' => 'Completed events can no longer be edited.'], 422);
         }
 
         $data = $request->validate([
@@ -94,11 +104,17 @@ class EventController extends Controller
     // Cancels the event by setting status to cancelled.
     public function destroy(Request $request, Event $event): JsonResponse
     {
+        $event->refreshCompletionStatus();
+
         if ($event->organizer_id !== $request->user()->id) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $event->update(['status' => 'cancelled']);
+        if ($event->status === Event::STATUS_COMPLETED) {
+            return response()->json(['message' => 'Completed events cannot be cancelled.'], 422);
+        }
+
+        $event->update(['status' => Event::STATUS_CANCELLED]);
 
         return response()->json(['message' => 'Event cancelled.']);
     }
@@ -108,7 +124,7 @@ class EventController extends Controller
     private function hasDuplicateTitle(int $organizerId, string $title, ?int $excludeEventId = null): bool
     {
         return Event::where('organizer_id', $organizerId)
-            ->where('status', 'open')
+            ->where('status', Event::STATUS_OPEN)
             ->when($excludeEventId, fn($q) => $q->where('id', '!=', $excludeEventId))
             ->whereRaw('LOWER(title) = ?', [mb_strtolower(trim($title))])
             ->exists();

@@ -18,6 +18,7 @@ export function EventCard({ event }: { event: EventItem }) {
   const full = isFull(event.id);
   const registered = !!registrationFor(event.id);
   const cancelled = event.status === "cancelled";
+  const completed = event.status === "completed";
 
   return (
     <Card className="group overflow-hidden pt-0 transition-colors hover:border-primary/40">
@@ -27,10 +28,10 @@ export function EventCard({ event }: { event: EventItem }) {
           alt={event.title}
           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        {(cancelled || full || registered) && (
+        {(cancelled || completed || full || registered) && (
           <div className="absolute right-3 top-3">
-            {cancelled ? (
-              <EventStatusBadge status="cancelled" />
+            {cancelled || completed ? (
+              <EventStatusBadge status={event.status} />
             ) : registered ? (
               <Badge className="bg-primary text-primary-foreground">Registered</Badge>
             ) : (
@@ -57,7 +58,7 @@ export function EventCard({ event }: { event: EventItem }) {
             <span className="line-clamp-1">{event.venue}</span>
           </div>
         </div>
-        {!cancelled && <CapacityBar filled={filled} capacity={event.capacity} />}
+        {!cancelled && !completed && <CapacityBar filled={filled} capacity={event.capacity} />}
       </CardContent>
 
       <CardFooter>

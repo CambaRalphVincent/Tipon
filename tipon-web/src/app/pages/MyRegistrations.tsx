@@ -42,10 +42,14 @@ export function MyRegistrations() {
     [registrations, currentUserId, eventById],
   );
 
-  const upcoming = mine.filter((x) => x.reg.status === "registered" && !isPast(x.event.eventDate));
-  const past = mine.filter((x) => isPast(x.event.eventDate) && x.reg.status === "registered");
+  const upcoming = mine.filter(
+    (x) => x.reg.status === "registered" && x.event.status === "open" && !isPast(x.event.eventDate),
+  );
+  const past = mine.filter(
+    (x) => x.reg.status === "registered" && (x.event.status === "completed" || isPast(x.event.eventDate)),
+  );
   const cancelled = mine.filter((x) => x.reg.status === "cancelled");
-  const totalActive = upcoming.length + past.length;
+  const totalActive = upcoming.length;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -75,7 +79,7 @@ export function MyRegistrations() {
           <p className="mt-4 text-xs text-muted-foreground">
             Showing <span className="font-semibold text-foreground">{mine.length}</span> registration
             {mine.length === 1 ? "" : "s"} with{" "}
-            <span className="font-semibold text-foreground">{totalActive}</span> active.
+            <span className="font-semibold text-foreground">{totalActive}</span> upcoming.
           </p>
         )}
 

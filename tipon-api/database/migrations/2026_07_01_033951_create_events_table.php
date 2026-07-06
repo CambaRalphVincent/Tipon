@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('venue');
             $table->timestamp('event_date');
             $table->unsignedInteger('capacity');
-            $table->enum('status', ['open', 'cancelled'])->default('open');
+            $table->enum('status', ['open', 'cancelled', 'completed'])->default('open');
             $table->string('cover_image_path')->nullable();
             $table->timestamps();
         });
