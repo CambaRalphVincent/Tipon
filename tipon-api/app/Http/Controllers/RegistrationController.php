@@ -7,10 +7,80 @@ use App\Models\Registration;
 use App\Notifications\RegistrationStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class RegistrationController extends Controller
 {
+    public function storePage(Request $request, Event $event): RedirectResponse
+    {
+        if ($event->status !== 'open') {
+            return back()->with('error', 'Event is not open for registration.');
+        }
+
+        if ($event->event_date->isPast()) {
+            return back()->with('error', 'Event has already ended.');
+        }
+
+        $alreadyRegistered = Registration::where('event_id', $event->id)
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'registered')
+            ->exists();
+
+        if ($alreadyRegistered) {
+            return back()->with('error', 'You are already registered for this event.');
+        }
+
+        try {
+            DB::transaction(function () use ($event, $request) {
+                $locked = Event::lockForUpdate()->findOrFail($event->id);
+
+                if ($locked->registrations()->where('status', 'registered')->count() >= $locked->capacity) {
+                    throw new \RuntimeException('Event is at full capacity.');
+                }
+
+                Registration::create([
+                    'event_id' => $locked->id,
+                    'user_id'  => $request->user()->id,
+                    'status'   => 'registered',
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        try {
+            $request->user()->notify(new RegistrationStatusNotification($event, 'registered'));
+        } catch (Throwable) {
+            // Registration succeeded; notification should not block the user flow.
+        }
+
+        return back()->with('success', 'You have successfully registered for this event.');
+    }
+
+    public function cancelForEventPage(Request $request, Event $event): RedirectResponse
+    {
+        $registration = Registration::where('event_id', $event->id)
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'registered')
+            ->first();
+
+        if (! $registration) {
+            return back()->with('error', 'No active registration was found for this event.');
+        }
+
+        $registration->update(['status' => 'cancelled']);
+
+        try {
+            $request->user()->notify(new RegistrationStatusNotification($event, 'cancelled'));
+        } catch (Throwable) {
+            // Cancellation succeeded; notification should not block the user flow.
+        }
+
+        return back()->with('success', 'Your registration has been cancelled.');
+    }
+
     // Organizer views all registrations across all their events.
     public function organizerRegistrations(Request $request): JsonResponse
     {

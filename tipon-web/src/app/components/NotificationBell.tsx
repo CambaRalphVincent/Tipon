@@ -2,7 +2,6 @@ import { Bell, BellRing, CalendarClock, CheckCircle2, Info, XCircle } from "luci
 import { Button } from "./ui/button";
 import { TriggerButton } from "./TriggerButton";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "./ui/utils";
 import { formatRelative } from "../lib/format";
 import { useAppStore } from "../store/AppStore";
@@ -43,7 +42,7 @@ export function NotificationBell() {
           )}
         </TriggerButton>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent align="end" className="w-80 overflow-hidden p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <p className="font-medium">Notifications</p>
           {unread > 0 && (
@@ -52,7 +51,7 @@ export function NotificationBell() {
             </Button>
           )}
         </div>
-        <ScrollArea className="max-h-80">
+        <div className="max-h-[min(22rem,calc(100vh-6rem))] overflow-y-auto overscroll-contain">
           {mine.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
               No notifications yet.
@@ -85,7 +84,7 @@ export function NotificationBell() {
               })}
             </ul>
           )}
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );

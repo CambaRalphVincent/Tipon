@@ -14,8 +14,8 @@
 /*
  * Design tokens copied from tipon-web/src/styles/theme.css so the Livewire
  * pages share the exact same color system as the React app, instead of an
- * approximation. Only the dark + "Tropical Teal" variant is included since
- * Livewire pages always render dark (no theme switcher here yet).
+ * approximation. Livewire pages render dark, with the same theme variants as
+ * the React app.
  */
 .dark {
     --background: oklch(0.17 0.025 264);
@@ -60,6 +60,28 @@
     --border: oklch(0.3 0.025 220);
     --input: oklch(0.28 0.025 220);
     --ring: oklch(0.77 0.12 185);
+}
+
+.dark.theme-sunset {
+    --background: oklch(0.17 0.03 330);
+    --foreground: oklch(0.97 0.008 330);
+    --card: oklch(0.205 0.035 330);
+    --card-foreground: oklch(0.97 0.008 330);
+    --popover: oklch(0.205 0.035 330);
+    --popover-foreground: oklch(0.97 0.008 330);
+    --primary: oklch(0.72 0.18 18);
+    --primary-foreground: oklch(0.22 0.04 330);
+    --secondary: oklch(0.29 0.035 330);
+    --secondary-foreground: oklch(0.97 0.008 330);
+    --muted: oklch(0.26 0.03 330);
+    --muted-foreground: oklch(0.74 0.03 330);
+    --accent: oklch(0.31 0.04 330);
+    --accent-foreground: oklch(0.97 0.008 330);
+    --destructive: oklch(0.55 0.2 25.5);
+    --destructive-foreground: oklch(0.97 0.008 330);
+    --border: oklch(0.31 0.035 330);
+    --input: oklch(0.29 0.035 330);
+    --ring: oklch(0.72 0.18 18);
 }
 
 @theme inline {

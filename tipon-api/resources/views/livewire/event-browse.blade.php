@@ -1,59 +1,24 @@
-<?php
-
-use App\Models\Event;
-use Livewire\Attributes\Computed;
-use Livewire\Component;
-
-new class extends Component
-{
-    public string $query = '';
-
-    #[Computed]
-    public function events()
-    {
-        return Event::query()
-            ->with('organizer:id,name')
-            ->withCount(['registrations as registered_count' => fn ($q) => $q->where('status', 'registered')])
-            ->where('event_date', '>', now())
-            ->when($this->query, function ($q) {
-                $q->where(function ($q) {
-                    $q->where('title', 'like', "%{$this->query}%")
-                        ->orWhere('description', 'like', "%{$this->query}%")
-                        ->orWhere('venue', 'like', "%{$this->query}%");
-                });
-            })
-            ->orderBy('event_date')
-            ->get();
-    }
-
-    #[Computed]
-    public function myRegisteredEventIds()
-    {
-        return auth()->user()->registrations()
-            ->where('status', 'registered')
-            ->pluck('event_id')
-            ->all();
-    }
-};
-?>
-
-<div class="mx-auto max-w-7xl space-y-6">
+﻿<div class="mx-auto max-w-7xl space-y-6">
     <div>
         <div class="mb-1">
             <h1 class="text-[1.75rem] font-extrabold leading-none tracking-tight">Browse Events</h1>
         </div>
-        <p class="text-sm text-muted-foreground">Discover upcoming seminars, workshops and academic events — and secure your slot.</p>
+        <p class="text-sm text-muted-foreground">Discover upcoming seminars, workshops and academic events - and secure your slot.</p>
     </div>
 
-    <div class="flex max-w-[30rem] items-center gap-3 rounded-xl border border-primary/10 bg-foreground/[0.03] px-4 py-2.5">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0 text-muted-foreground"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
+    <form method="GET" action="/events" class="flex max-w-[30rem] items-center gap-3 rounded-xl border border-primary/10 bg-foreground/[0.03] px-4 py-2.5">
+        <button type="submit" class="text-muted-foreground transition-colors hover:text-primary" aria-label="Search events">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg>
+        </button>
         <input
             type="text"
+            name="q"
+            value="{{ $query }}"
             wire:model.live.debounce.300ms="query"
             placeholder="Search events, venues..."
             class="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         >
-    </div>
+    </form>
 
     @if (! $this->events->isEmpty())
         <p class="text-xs text-muted-foreground">
@@ -91,19 +56,28 @@ new class extends Component
                     $registered = in_array($event->id, $this->myRegisteredEventIds);
                 @endphp
                 <a
-                    wire:navigate
                     wire:key="event-{{ $event->id }}"
                     href="/events/{{ $event->id }}"
-                    class="group flex flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
+                    class="group flex flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card transition-colors duration-200 [contain-intrinsic-size:24rem] [content-visibility:auto] hover:border-primary/30"
                 >
                     <div class="relative aspect-video overflow-hidden bg-muted">
-                        <img src="{{ $event->cover_image_path }}" alt="{{ $event->title }}" class="size-full object-cover transition-transform duration-300 group-hover:scale-105">
+                        <img
+                            src="{{ $event->cover_image_path }}"
+                            alt="{{ $event->title }}"
+                            width="960"
+                            height="540"
+                            loading="{{ $loop->iteration <= 3 ? 'eager' : 'lazy' }}"
+                            decoding="async"
+                            fetchpriority="{{ $loop->iteration <= 3 ? 'high' : 'low' }}"
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                            class="size-full object-cover"
+                        >
                         @if ($event->status === 'cancelled')
-                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-red-500/30 bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400">Cancelled</span>
+                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-red-300/30 bg-red-500 px-2.5 py-1 text-xs font-semibold text-white shadow-lg shadow-black/25">Cancelled</span>
                         @elseif ($registered)
-                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-transparent bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground">Registered</span>
+                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-primary-foreground/20 bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground shadow-lg shadow-black/20">Registered</span>
                         @elseif ($full)
-                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-red-500/30 bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400">Full</span>
+                            <span class="absolute right-3 top-3 inline-flex items-center rounded-full border border-red-300/30 bg-red-500 px-2.5 py-1 text-xs font-semibold text-white shadow-lg shadow-black/25">Full</span>
                         @endif
                     </div>
                     <div class="flex flex-1 flex-col gap-3 p-5">

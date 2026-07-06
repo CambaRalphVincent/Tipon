@@ -5,9 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class EventController extends Controller
 {
+    public function browsePage(): View
+    {
+        return view('events.browse');
+    }
+
+    public function detailPage(Event $event): View
+    {
+        return view('events.detail', compact('event'));
+    }
+
     // FR-06 — All authenticated users can browse events.
     public function index(): JsonResponse
     {

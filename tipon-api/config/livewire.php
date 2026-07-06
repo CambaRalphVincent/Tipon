@@ -183,6 +183,19 @@ return [
 
     /*
     |---------------------------------------------------------------------------
+    | Frontend Asset URL
+    |---------------------------------------------------------------------------
+    |
+    | Keep Livewire assets relative to the current host. This avoids inert
+    | components when the app is opened through a host that differs from APP_URL
+    | such as 127.0.0.1 vs localhost.
+    |
+    */
+
+    'asset_url' => null,
+
+    /*
+    |---------------------------------------------------------------------------
     | Navigate (SPA mode)
     |---------------------------------------------------------------------------
     |

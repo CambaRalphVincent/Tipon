@@ -11,13 +11,14 @@ Source files referenced throughout:
 - Frontend API types + adapters: `tipon-web/src/app/lib/api.ts`,
   `tipon-web/src/app/store/AppStore.tsx`
 
-**A third consumer, added on the `livewire-experiment` branch (see the README's
-[Livewire Experiment](../README.md#livewire-experiment-livewire-experiment-branch)
-section):** the Livewire pages under `tipon-api/resources/views/components/` read
-and write the `events` and `registrations` tables **directly via Eloquent**, with
-no API round-trip and no camelCase adapter layer — they consume the exact same
-column names as the schema itself, unlike `tipon-web`'s adapted `EventItem`/
-`Registration` types. Noted per-column below where relevant.
+**A third consumer now exists in the current application:** the participant
+Livewire pages read and write the `events`, `registrations`, and `notifications`
+tables through Laravel/Eloquent and normal web routes. Their classes live in
+`tipon-api/app/Livewire`, their component views live in
+`tipon-api/resources/views/livewire`, and their page wrappers live in
+`tipon-api/resources/views/events`. Unlike `tipon-web`, these pages consume the
+schema directly instead of adapting API responses into camelCase frontend types.
+Noted per-column below where relevant.
 
 ---
 
@@ -118,21 +119,20 @@ the friendly `422` check already done in `EventController::store()`/`update()`
 `confirmedCountFor(eventId)` against `capacity` client-side, mirroring the backend's
 derived-capacity design rather than trusting a stored flag.
 
-### Livewire usage (`livewire-experiment` branch)
+### Livewire usage
 
-`⚡events-browse.blade.php` queries `Event::query()` directly with `withCount` for
-a live registered count (same technique as `EventController::index`), plus a
-`where('title', 'like', ...)` /`orWhere` search across `title`, `description`, and
-`venue` driven by `wire:model.live.debounce.300ms="query"` — no separate search
-endpoint, the Blade component's own `#[Computed]` method re-runs the query on every
-keystroke (debounced). `⚡event-detail.blade.php` route-model-binds `{event}`
-straight to an `Event` instance via `mount(Event $event)` (Laravel's implicit
-route-model binding, the same mechanism `EventController@show` benefits from
-automatically) and reads `title`, `description`, `event_date`, `venue`,
-`organizer->name`, `capacity`, and `status` directly off the model — no adapter, no
-`registered_count` alias needed since it's recomputed inline via a `#[Computed]`
-`registeredCount()` method identical in logic to `confirmedCountFor()` on the
-frontend.
+`app/Livewire/EventBrowse.php` queries `Event::query()` directly with `withCount`
+for the live registered count, using the same derived-count design as
+`EventController::index`. Search is supported through the query string
+(`GET /events?q=...`) and filters across `title`, `description`, and `venue`, so
+the page remains usable even when Livewire JavaScript hydration is unreliable.
+
+`app/Livewire/EventDetail.php` receives `{event}` through Laravel route model
+binding via `EventController@detailPage`, then the Blade wrapper renders
+`<livewire:event-detail />`. The component reads `title`, `description`,
+`event_date`, `venue`, `organizer->name`, `capacity`, and `status` directly from
+the model. The page still uses the same database fields as the React detail page,
+but without a JSON API adapter layer.
 
 ---
 
@@ -178,19 +178,19 @@ Cancelling a registration client-side just flips `status` to `"cancelled"` local
 (mirrors the backend's soft-cancel) — it stays in the `registrations` array and still
 shows up under the Cancelled tab.
 
-### Livewire usage (`livewire-experiment` branch)
+### Livewire usage
 
-`⚡event-detail.blade.php`'s `register()` action writes `event_id`/`user_id`/
-`status` directly via `Registration::create()`, inside the **exact same**
-transaction-locked capacity check as `RegistrationController::store()`
-(`Event::lockForUpdate()` before counting `status = 'registered'` rows) — since both
-the REST API and this Livewire page can create registrations against the same
-event, the row lock is what actually prevents overbooking between them, not
-whichever code path happens to run first. `cancelRegistration()` flips `status` to
-`cancelled` the same way `RegistrationController::cancel()` does. `attendance` is
-never read or written here — attendance recording stays organizer-only
-(`RegistrantList.tsx` on the React side), out of scope for these two
-participant-facing pages.
+The participant Event Detail page now uses normal Laravel form POST fallbacks for
+registration and cancellation:
+
+- `POST /events/{event}/register`
+- `POST /events/{event}/cancel-registration`
+
+Those routes call `RegistrationController` page methods and still use the same
+transaction-locked capacity check as the API (`Event::lockForUpdate()` before
+counting active `registered` rows). Cancellation flips `status` to `cancelled`,
+preserving history. `attendance` is never read or written here; attendance
+recording remains organizer-only on the React side.
 
 ---
 
@@ -234,6 +234,22 @@ Laravel's `Notifiable` trait on the `User` model.
 (`registration_confirmed`, `event_cancelled`) from `data.status`, even though
 `mockData.ts` still defines two more (`event_updated`, `event_reminder`) that the
 backend never actually sends — leftover prototype types, not live features.
+
+### Livewire usage
+
+The Livewire layout reads the authenticated user's latest database notifications
+directly through `$user->notifications()`. The unread badge is powered by
+`$user->unreadNotifications()->count()`, matching the `read_at = null` convention.
+
+Two session-authenticated web routes update notification read state:
+
+- `POST /notifications/{notification}/read` marks one notification as read.
+- `POST /notifications/read-all` marks all unread notifications as read.
+
+The Livewire notification popover follows the same display convention as the React
+popover: `data.status = registered` becomes "Registration confirmed", while
+`data.status = cancelled` becomes "Registration cancelled". The message body comes
+from `data.message`, and `created_at` is displayed as relative time.
 
 ---
 

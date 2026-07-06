@@ -34,6 +34,9 @@ const DEFAULT_COVER =
 
 const MAX_THUMBNAIL_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_THUMBNAIL_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const OPTIMIZED_THUMBNAIL_WIDTH = 960;
+const OPTIMIZED_THUMBNAIL_HEIGHT = 540;
+const OPTIMIZED_THUMBNAIL_QUALITY = 0.82;
 const MAX_TITLE_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 1000;
 
@@ -59,6 +62,70 @@ function toFormState(event: EventItem): FormState {
     capacity: event.capacity,
     cover_image_path: event.cover_image_path,
   };
+}
+
+function loadImageFromFile(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Image could not be loaded."));
+    };
+    img.src = url;
+  });
+}
+
+async function optimizeThumbnail(file: File): Promise<File> {
+  const img = await loadImageFromFile(file);
+  const sourceRatio = img.naturalWidth / img.naturalHeight;
+  const targetRatio = OPTIMIZED_THUMBNAIL_WIDTH / OPTIMIZED_THUMBNAIL_HEIGHT;
+
+  let sourceWidth = img.naturalWidth;
+  let sourceHeight = img.naturalHeight;
+  let sourceX = 0;
+  let sourceY = 0;
+
+  if (sourceRatio > targetRatio) {
+    sourceWidth = Math.round(img.naturalHeight * targetRatio);
+    sourceX = Math.round((img.naturalWidth - sourceWidth) / 2);
+  } else if (sourceRatio < targetRatio) {
+    sourceHeight = Math.round(img.naturalWidth / targetRatio);
+    sourceY = Math.round((img.naturalHeight - sourceHeight) / 2);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = OPTIMIZED_THUMBNAIL_WIDTH;
+  canvas.height = OPTIMIZED_THUMBNAIL_HEIGHT;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+
+  ctx.drawImage(
+    img,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    OPTIMIZED_THUMBNAIL_WIDTH,
+    OPTIMIZED_THUMBNAIL_HEIGHT,
+  );
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/webp", OPTIMIZED_THUMBNAIL_QUALITY),
+  );
+
+  if (!blob || blob.size >= file.size) return file;
+
+  const baseName = file.name.replace(/\.[^.]+$/, "");
+  return new File([blob], `${baseName}.webp`, { type: "image/webp" });
 }
 
 export function EventFormDialog({
@@ -103,7 +170,7 @@ export function EventFormDialog({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
@@ -117,16 +184,24 @@ export function EventFormDialog({
       return;
     }
 
+    let uploadFile = file;
+
+    try {
+      uploadFile = await optimizeThumbnail(file);
+    } catch {
+      uploadFile = file;
+    }
+
     // Show a local preview immediately while the upload runs.
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    const blobUrl = URL.createObjectURL(file);
+    const blobUrl = URL.createObjectURL(uploadFile);
     objectUrlRef.current = blobUrl;
     set("cover_image_path", blobUrl);
 
     // Upload to server in the background.
     setUploading(true);
     uploadApi
-      .image(file)
+      .image(uploadFile)
       .then((res) => {
         if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
@@ -249,7 +324,7 @@ export function EventFormDialog({
               >
                 <ImagePlus className="size-8" />
                 <span className="text-sm font-medium">Click to upload thumbnail</span>
-                <span className="text-xs">PNG, JPG, or WEBP — up to 2 MB</span>
+                <span className="text-xs">PNG, JPG, or WEBP - optimized before upload</span>
               </button>
             )}
           </div>

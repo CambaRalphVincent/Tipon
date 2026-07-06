@@ -1,4 +1,4 @@
-# Tipon — University Event Registration System (ERS)
+# Tipon - University Event Registration System (ERS)
 
 Tipon replaces manual event sign-ups (paper forms, spreadsheets, group chats) with a
 web-based registration system. It prevents overbooking and duplicate registrations,
@@ -10,28 +10,31 @@ their registration history.
 
 | Layer | Technology |
 |---|---|
-| Backend | Laravel 12 (PHP 8.2+) — REST API |
-| Frontend | React 19 + TypeScript + Vite |
+| Backend | Laravel 12 (PHP 8.2+) REST API |
+| Participant pages | Laravel Livewire 4 for Browse Events and Event Detail |
+| React frontend | React 19 + TypeScript + Vite |
 | Styling | Tailwind CSS 4 + Radix UI components |
 | Database | PostgreSQL |
-| Auth | Laravel Sanctum (token-based) + role middleware |
+| Auth | Laravel Sanctum tokens, Laravel session auth for Livewire pages, role middleware |
 | Charts | Recharts |
 | Notifications | Laravel database notifications (in-app, polymorphic) |
 | Transactional email | Brevo (HTTP API transport via `symfony/brevo-mailer`) |
 | Testing | PHPUnit |
-| Livewire (experimental) | Livewire 4 — see [Livewire Experiment](#livewire-experiment-livewire-experiment-branch) |
 
-**Architecture:** decoupled 3-tier — a React single-page app (`tipon-web`) talks to a
-Laravel REST API (`tipon-api`) over HTTP/JSON, backed by PostgreSQL. The two apps live
-in one repository but deploy and run independently. A separate `livewire-experiment`
-git branch (not merged into `main`) additionally rebuilds two pages — event browsing
-and event detail — as server-rendered Livewire pages, to compare the two approaches
-directly (see below). `main` itself is unaffected by this experiment.
+**Architecture:** mixed full-stack architecture inside one repository. The React
+single-page app (`tipon-web`) handles authentication, organizer pages, admin pages,
+and My Registrations. The Laravel app (`tipon-api`) provides the REST API and also
+serves participant Browse Events and Event Detail pages through Livewire. Both
+frontends share the same PostgreSQL-backed Laravel domain logic, validation rules,
+database constraints, theme tokens, and notification system.
+
+For a focused breakdown of React, Laravel API, and Livewire responsibilities, see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ```
 Tipon/
-├── tipon-api/   Laravel REST API (auth, events, registrations, attendance, admin)
-└── tipon-web/   React SPA (participant/organizer/admin UI)
+|-- tipon-api/   Laravel REST API + Livewire participant pages
+`-- tipon-web/   React SPA for auth, organizer, admin, and My Registrations
 ```
 
 ## Roles
@@ -208,67 +211,65 @@ token.
 | Notifications | `GET /notifications`, `PUT /notifications/{id}/read` |
 | Admin | `GET /admin/users`, `POST /admin/organizers`, `PUT /admin/users/{id}/promote` |
 
-## Livewire Experiment (`livewire-experiment` branch)
+## Livewire Web Routes
 
-Built to satisfy a specific requirement to demonstrate Laravel Livewire on two
-pages — **Browse Events** and **Event Detail** — as a point of comparison against
-the React implementation of the same features. Lives entirely on a separate git
-branch, not yet merged into `main`. The Livewire-specific pieces (the two Blade
-pages, session auth, routes) are isolated to this branch by design. The
-vectorized logo and `AuthPage.tsx` split-screen redesign documented above under
-[Design](#design) are general UI changes, not specific to this experiment — but
-since they were also made on this branch, they too only exist here until
-merged back.
+These routes are session-authenticated browser routes, not JSON API routes.
 
-### Running this branch locally
+| Area | Routes |
+|---|---|
+| Participant events | `GET /events`, `GET /events/{event}` |
+| Participant registration | `POST /events/{event}/register`, `POST /events/{event}/cancel-registration` |
+| Notifications | `POST /notifications/{notification}/read`, `POST /notifications/read-all` |
+| Session logout | `POST /logout-livewire` |
 
-On top of the regular `main` setup (see Getting Started above), this branch needs:
-```bash
-cd tipon-api
-composer require livewire/livewire   # v4 — v3 doesn't support Laravel 12
-npm install                          # compiles this app's own Tailwind/JS, separate from tipon-web
-npm run dev                          # third terminal, alongside `php artisan serve` and tipon-web's `npm run dev`
+## Livewire Participant Pages
+
+Tipon now uses Livewire for the participant-facing Browse Events and Event Detail
+pages. This is no longer documented as a separate branch experiment; it is part of
+the current working application.
+
+### Current Livewire structure
+
+The Livewire implementation follows a controller-wrapper structure:
+
+```text
+GET /events
+  -> EventController@browsePage
+  -> resources/views/events/browse.blade.php
+  -> <livewire:event-browse />
+  -> app/Livewire/EventBrowse.php
+  -> resources/views/livewire/event-browse.blade.php
+
+GET /events/{event}
+  -> EventController@detailPage
+  -> resources/views/events/detail.blade.php
+  -> <livewire:event-detail />
+  -> app/Livewire/EventDetail.php
+  -> resources/views/livewire/event-detail.blade.php
 ```
-Then log in as a participant at `http://localhost:5173` as usual, and browse to
-`http://localhost:8000/events` directly (see "Known limitation" below for why
-that's a separate port rather than staying on `:5173`).
 
-### What it is
+This keeps route/page ownership in the controller while keeping interactive page
+state in Livewire classes under `app/Livewire`.
 
-- `resources/views/components/⚡events-browse.blade.php` and
-  `⚡event-detail.blade.php` — Livewire 4 single-file components (PHP class +
-  Blade template in one file) that re-implement `EventsBrowse.tsx`/`EventDetail.tsx`
-  with live search, registration, and cancellation — but query Eloquent models
-  directly instead of calling the REST API, since Livewire runs inside the same
-  Laravel process.
-- Routed via `Route::livewire('/events', 'events-browse')` and
-  `Route::livewire('/events/{event}', 'event-detail')` in `routes/web.php`,
-  guarded by `auth` + `role:participant` middleware — the same `RequireRole`
-  middleware the REST API uses, since `$request->user()` resolves identically
-  regardless of whether Sanctum authenticated the request via a session or a
-  bearer token.
-- Registration logic mirrors `RegistrationController::store()` exactly: the event
-  row is locked inside a DB transaction before the capacity check, so overbooking
-  can't happen even with the API and the Livewire page both live at once.
-- Visually matches the React app's default "Tropical Teal" theme — the same OKLCH
-  color tokens from `tipon-web/src/styles/theme.css` were copied into
-  `tipon-api/resources/css/app.css`, and a left sidebar replicating `AppShell.tsx`
-  (vectorized logo, nav, user info, sign out) was rebuilt in Blade/Tailwind,
-  including a mobile drawer using Alpine.js (bundled with Livewire) in place of
-  React state.
-- Both pages went through the same visual design pass as the React app's login
-  page: a pulsing "Live" badge next to the page title, a refined search bar,
-  event cards with hover-lift and a pill-style "View details" button, and inline
-  SVG icons (calendar, map pin, clock, etc. — path data pulled directly from
-  `tipon-web`'s installed `lucide-react` package for visual parity, since Blade
-  has no equivalent icon library). The event detail page adds a hero banner with
-  a legibility gradient over the real cover image, an icon-labeled info grid
-  (date/time/venue/organizer), and a registration panel with a large seats-filled
-  stat, a spots-left counter, and a fill-percentage readout. Two features visible
-  in the original design mockups were deliberately left out: category filter
-  chips/badges and a stats row on the login page, since neither has real backing
-  data in the schema (no `category` column, no real usage history) — shipping
-  either would mean showing fabricated information to real users.
+### Livewire behavior
+
+- Browse Events reads events directly from Eloquent and supports server-rendered
+  search through `GET /events?q=...`, so search still works even if Livewire
+  JavaScript does not hydrate.
+- Event Detail uses standard form POST fallbacks for registration and cancellation:
+  `POST /events/{event}/register` and
+  `POST /events/{event}/cancel-registration`.
+- Registration still uses the same transaction-safe capacity checks as the API:
+  the event row is locked before checking capacity and creating the registration.
+- The Livewire layout mirrors the React app's sidebar, notification popover,
+  theme switcher, and card styling conventions.
+- Theme selection is shared across React and Livewire through the same
+  `tipon-theme` localStorage key and the same three options:
+  `Bayanihan Gold`, `Tropical Teal`, and `Festival Sunset`.
+- Notifications use Laravel database notifications. Clicking one notification
+  marks it as read; `Mark all read` clears the unread count.
+- Event thumbnails are rendered with explicit image dimensions and lazy loading
+  rules to reduce browse-page scrolling lag.
 
 ### Shared login, two auth mechanisms
 
@@ -282,40 +283,29 @@ either credential type transparently. See `config/cors.php`, `config/sanctum.php
 and the `SANCTUM_STATEFUL_DOMAINS`/`SESSION_DOMAIN` entries in `.env.example` for
 the supporting config.
 
-### Known limitation: separate port in local dev
+### Local development note
 
 Locally, the Livewire pages are reached at **`http://localhost:8000/events`**
-directly, not proxied under `http://localhost:5173` like the rest of the SPA. This
-was attempted (a Vite dev-server proxy) and hit a hard wall: Livewire's own
-JavaScript makes its AJAX calls with the browser's default fetch credentials mode,
-never opting into `credentials: 'include'` (confirmed by inspecting the shipped
-`livewire.js` — zero occurrences of `credentials` anywhere in it). That means the
-session cookie never travels with those requests once the *page* and the *AJAX
-target* are different origins, so search/register/cancel all fail with a `419`
-no matter how the network routing is configured. This is specifically a **local
-development** artifact of running two separate dev servers — in a real deployment,
-both apps would sit behind one actual domain via a reverse proxy, making them
-genuinely the same origin, and this limitation disappears entirely.
+directly, while the React app runs at **`http://localhost:5173`**. This keeps the
+Laravel session and Livewire requests on the Laravel origin. In production, both
+frontends should sit behind one domain/reverse proxy.
 
-### React vs. Livewire — what building both actually showed
+### React vs. Livewire - what building both showed
 
-| | React SPA (`tipon-web`) | Livewire (this branch) |
+| | React SPA (`tipon-web`) | Livewire participant pages |
 |---|---|---|
 | **Where state lives** | Client-side, in the browser (`AppStore.tsx` context) | Server-side, re-rendered per request; the browser only holds a serialized snapshot |
-| **How it talks to the backend** | Explicit REST API calls (`axios`) to `tipon-api` | Direct Eloquent queries inside the component — no API layer needed for that page |
-| **Adding this feature from scratch** | Requires a UI layer *and* API endpoints, kept in sync manually | Faster for a single CRUD-ish page — one file, no separate endpoint to design/version |
-| **Matching an existing design system** | N/A — it *is* the design system (Radix UI + Tailwind, iterated over many passes) | Manual, one utility class at a time — no Radix UI equivalent ships with Livewire, so parity took deliberate copying of color tokens and layout structure |
-| **Auth model** | Stateless bearer tokens — simple, portable to any client type | Stateful sessions — required extending the existing token-based `AuthController` to *also* support sessions, without breaking the original flow |
+| **How it talks to the backend** | Explicit REST API calls (`axios`) to `tipon-api` | Direct Eloquent queries and form POST routes inside Laravel |
+| **Adding this feature from scratch** | Requires a UI layer and API endpoints, kept in sync manually | Faster for server-rendered participant pages, but requires careful layout parity |
+| **Matching an existing design system** | Radix UI + Tailwind components are already available | Manual Blade/Tailwind recreation of React conventions |
+| **Auth model** | Sanctum bearer tokens | Laravel browser session |
 | **Cross-origin tolerance** | Designed for it from day one (that's the whole point of a decoupled API) | Assumes same-origin everywhere; breaks in ways that are hard to fully work around once that assumption doesn't hold |
 | **Best fit** | An app that needs a real decoupled client (this SPA today, potentially a mobile app later) talking to one API | A Laravel-only monolith where the backend and the only frontend are never meant to be separate things |
 
-**Takeaway:** Tipon's actual architecture — a decoupled React SPA over a Laravel
-REST API — remains the right call for a system that needs a rich, client-rendered
-UI and room to add other API clients later. Livewire is a legitimate, often faster
-choice when the whole app *is* Laravel end-to-end with no separate client planned;
-retrofitting it onto two pages of an already-decoupled app is possible (as this
-branch demonstrates) but works against several of Livewire's built-in assumptions,
-which is exactly what the auth and cross-origin sections above ran into.
+**Takeaway:** Tipon currently demonstrates both approaches. React remains the main
+client for the richer organizer/admin workflows, while Livewire is used for the
+participant event-browsing flow where Laravel-owned server rendering is acceptable
+and matches the supervisor's requested structure.
 
 ## Non-Functional Notes
 
@@ -336,9 +326,15 @@ which is exactly what the auth and cross-origin sections above ran into.
   to prevent oversized or disguised/malicious files (e.g. SVG with embedded
   scripts) from being accepted — the frontend also filters and checks before
   upload, but the server-side rule is the actual security boundary.
+- The React event form optimizes selected thumbnails into a smaller WebP version
+  before upload when doing so reduces the file size. The server-side upload
+  validation remains the security boundary.
 - Role-based access enforced via middleware on every protected route.
 - Registration capacity checks are transaction-safe under concurrent load
   (row-level locking).
+- Participant Browse Events search, event registration, event cancellation, and
+  notification read actions have normal Laravel form/route fallbacks so the core
+  participant flow still works when Livewire JavaScript hydration is unreliable.
 - Responsive UI targeting Chrome, Firefox, and Edge.
 - `EventController::store()`/`update()` now reload and return `registered_count`
   on the created/updated event (previously omitted, so the frontend received an

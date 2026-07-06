@@ -1,109 +1,5 @@
-<?php
-
-use App\Models\Event;
-use App\Models\Registration;
-use App\Notifications\RegistrationStatusNotification;
-use Illuminate\Support\Facades\DB;
-use Livewire\Attributes\Computed;
-use Livewire\Component;
-
-new class extends Component
-{
-    public Event $event;
-
-    public function mount(Event $event)
-    {
-        $this->event = $event;
-    }
-
-    #[Computed]
-    public function registeredCount()
-    {
-        return $this->event->registrations()->where('status', 'registered')->count();
-    }
-
-    #[Computed]
-    public function myRegistration()
-    {
-        return $this->event->registrations()
-            ->where('user_id', auth()->id())
-            ->where('status', 'registered')
-            ->first();
-    }
-
-    #[Computed]
-    public function isFull()
-    {
-        return $this->registeredCount >= $this->event->capacity;
-    }
-
-    #[Computed]
-    public function isPast()
-    {
-        return $this->event->event_date->isPast();
-    }
-
-    // Mirrors RegistrationController::store()'s capacity-safe logic — the
-    // event row is locked inside a transaction so concurrent registrations
-    // (from this page or the React app) can't overbook the event.
-    public function register()
-    {
-        if ($this->event->status !== 'open') {
-            session()->flash('error', 'Event is not open for registration.');
-            return;
-        }
-
-        if ($this->myRegistration) {
-            session()->flash('error', 'You are already registered for this event.');
-            return;
-        }
-
-        try {
-            DB::transaction(function () {
-                $locked = Event::lockForUpdate()->findOrFail($this->event->id);
-
-                if ($locked->registrations()->where('status', 'registered')->count() >= $locked->capacity) {
-                    throw new \RuntimeException('Event is at full capacity.');
-                }
-
-                Registration::create([
-                    'event_id' => $locked->id,
-                    'user_id'  => auth()->id(),
-                    'status'   => 'registered',
-                ]);
-            });
-        } catch (\RuntimeException $e) {
-            session()->flash('error', $e->getMessage());
-            unset($this->registeredCount, $this->isFull, $this->myRegistration);
-            return;
-        }
-
-        auth()->user()->notify(new RegistrationStatusNotification($this->event, 'registered'));
-
-        unset($this->registeredCount, $this->isFull, $this->myRegistration);
-        session()->flash('success', 'You have successfully registered for this event.');
-    }
-
-    public function cancelRegistration()
-    {
-        $registration = $this->myRegistration;
-
-        if (! $registration) {
-            return;
-        }
-
-        $registration->update(['status' => 'cancelled']);
-
-        auth()->user()->notify(new RegistrationStatusNotification($this->event, 'cancelled'));
-
-        unset($this->registeredCount, $this->isFull, $this->myRegistration);
-        session()->flash('success', 'Your registration has been cancelled.');
-    }
-};
-?>
-
-<div class="w-full max-w-none space-y-6" x-data="{ showCancelConfirm: false, showRegisterConfirm: false }">
-    <a wire:navigate href="/events" class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
+﻿<div class="w-full max-w-none space-y-6" x-data="{ showCancelConfirm: false, showRegisterConfirm: false }">
+    <a href="/events" class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 shrink-0"><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></svg>
         Back to events
     </a>
@@ -189,7 +85,7 @@ new class extends Component
                     </div>
                     <div>
                         <p class="mb-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Organizer</p>
-                        <p class="text-sm font-semibold">{{ $event->organizer->name ?? '—' }}</p>
+                        <p class="text-sm font-semibold">{{ $event->organizer->name ?? '-' }}</p>
                     </div>
                 </div>
             </div>
@@ -231,7 +127,8 @@ new class extends Component
                         </div>
                         @if (! $this->isPast)
                             <button
-                                @click="showCancelConfirm = true"
+                                type="button"
+                                onclick="document.getElementById('cancel-registration-dialog').showModal()"
                                 class="w-full rounded-xl border border-red-500/15 bg-red-500/[0.08] py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/15"
                             >
                                 Cancel registration
@@ -247,13 +144,16 @@ new class extends Component
                             Registration closed
                         </div>
                     @else
-                        <button
-                            @click="showRegisterConfirm = true"
-                            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-all active:scale-[0.98] hover:bg-primary/90"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></svg>
-                            Register now
-                        </button>
+                        <div>
+                            <button
+                                type="button"
+                                onclick="document.getElementById('register-event-dialog').showModal()"
+                                class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-all active:scale-[0.98] hover:bg-primary/90"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></svg>
+                                Register now
+                            </button>
+                        </div>
                     @endif
 
                     <div class="flex flex-col gap-2 border-t border-primary/10 pt-3">
@@ -271,10 +171,9 @@ new class extends Component
         </div>
     </div>
 
-    {{-- Cancel-registration confirmation: styled to match the app's dark dialog pattern. --}}
-    <div x-show="showCancelConfirm" x-cloak class="fixed inset-0 z-50">
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-[2px]" @click="showCancelConfirm = false"></div>
-        <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-2xl border border-primary/10 bg-card shadow-2xl sm:max-w-[30rem]">
+    @if ($registered && ! $this->isPast)
+    <dialog id="cancel-registration-dialog" class="fixed left-1/2 top-1/2 m-0 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-primary/10 bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-[2px] sm:max-w-[30rem]">
+        <div class="overflow-hidden rounded-2xl">
             <div class="space-y-4 p-6">
                 <div class="space-y-2">
                     <div class="flex size-10 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 text-red-400">
@@ -292,26 +191,29 @@ new class extends Component
             </div>
             <div class="flex flex-col-reverse gap-2 border-t border-primary/10 bg-foreground/[0.02] p-4 sm:flex-row sm:justify-end">
                 <button
-                    @click="showCancelConfirm = false"
+                    type="button"
+                    onclick="document.getElementById('cancel-registration-dialog').close()"
                     class="inline-flex items-center justify-center rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/10 hover:bg-accent hover:text-foreground focus-visible:border-primary/30 focus-visible:text-foreground"
                 >
                     Keep registration
                 </button>
-                <button
-                    wire:click="cancelRegistration"
-                    @click="showCancelConfirm = false"
-                    class="inline-flex items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/15 focus-visible:ring-2 focus-visible:ring-red-500/30"
-                >
-                    Cancel registration
-                </button>
+                <form method="POST" action="{{ route('livewire.events.cancel', $event) }}">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/15 focus-visible:ring-2 focus-visible:ring-red-500/30"
+                    >
+                        Cancel registration
+                    </button>
+                </form>
             </div>
         </div>
-    </div>
+    </dialog>
+    @endif
 
-    {{-- Register confirmation: confirms the commitment and repeats the event details. --}}
-    <div x-show="showRegisterConfirm" x-cloak class="fixed inset-0 z-50">
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-[2px]" @click="showRegisterConfirm = false"></div>
-        <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-2xl border border-primary/10 bg-card shadow-2xl sm:max-w-[30rem]">
+    @if (! $registered && $event->status !== 'cancelled' && ! $this->isPast && ! $this->isFull)
+    <dialog id="register-event-dialog" class="fixed left-1/2 top-1/2 m-0 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-primary/10 bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-[2px] sm:max-w-[30rem]">
+        <div class="overflow-hidden rounded-2xl">
             <div class="space-y-4 p-6">
                 <div class="space-y-2">
                     <div class="flex size-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
@@ -329,19 +231,23 @@ new class extends Component
             </div>
             <div class="flex flex-col-reverse gap-2 border-t border-primary/10 bg-foreground/[0.02] p-4 sm:flex-row sm:justify-end">
                 <button
-                    @click="showRegisterConfirm = false"
+                    type="button"
+                    onclick="document.getElementById('register-event-dialog').close()"
                     class="inline-flex items-center justify-center rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/10 hover:bg-accent hover:text-foreground focus-visible:border-primary/30 focus-visible:text-foreground"
                 >
                     Cancel
                 </button>
-                <button
-                    wire:click="register"
-                    @click="showRegisterConfirm = false"
-                    class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                    Confirm registration
-                </button>
+                <form method="POST" action="{{ route('livewire.events.register', $event) }}">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                        Confirm registration
+                    </button>
+                </form>
             </div>
         </div>
-    </div>
+    </dialog>
+    @endif
 </div>
