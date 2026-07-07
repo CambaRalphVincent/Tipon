@@ -120,6 +120,13 @@ Most core features are already working. Current work is focused on UI consistenc
 - Added automated coverage for organizer event-cancellation side effects: active registrations are cancelled and active registrants receive notifications.
 - Added automated coverage for participant re-registration display behavior: old cancelled rows are hidden from My Registrations when the participant is currently registered again for the same event.
 - Added automated coverage for Cancelled tab cleanup: only the latest recent cancellation per event is shown, and cancelled entries are hidden after one day.
+- Added frontend Vitest coverage for My Registrations display rules and tab summary text.
+- Expanded frontend Vitest coverage for Admin Dashboard, Create Organizer dialog,
+  Organizer Dashboard, Manage Events, Registrant List, AppStore registration/event
+  state behavior, CapacityBar, and EventCard.
+- Added a dedicated `vitest.config.ts` test config so frontend unit tests run
+  without loading the Tailwind Vite native plugin.
+- Fixed frontend production build issues caused by missing UI dependencies and stale generated component typings.
 - Added `docs/AUTOMATED_TESTING.md` to document the test folder structure, commands, covered cases, and Laravel testing tools used.
 
 ### Recent Progress
@@ -267,7 +274,7 @@ Most core features are already working. Current work is focused on UI consistenc
 
 ## Phase 5: Testing & CI/CD
 
-**Status:** Started, Automated Backend Tests Added
+**Status:** Started, Automated Backend and Frontend Tests Added
 
 ### Manual Testing Already Done
 
@@ -326,6 +333,7 @@ Current automated coverage includes:
 - Database-level constraints for duplicate registrations, duplicate open event titles, reusable cancelled states, and foreign key integrity.
 - Role-based access control across participant, organizer, admin, and shared API routes.
 - Organizer event create, update, cancel, ownership checks, duplicate-title prevention, duplicate-title blocking during update, status cancellation through update, blocked capacity reduction below active registrations, and event-cancellation side effects.
+- Event schedule handling, including preserving Philippines-local event times and converting legacy UTC-style payloads back to Philippines-local time.
 - Event validation, including required title, title/description/venue length limits, future dates, minimum capacity, invalid update status rejection, and title reuse after cancellation.
 - Completed/past event behavior, including automatic completion, blocked late registration, blocked late cancellation, and blocked organizer edits/cancellations.
 - Participant event registration, capacity blocking, duplicate-registration prevention, cancellation ownership, already-cancelled cancellation blocking, cancelled-event blocking, re-registration after cancellation, cancelled registrations not counting toward capacity, cancelled registration history, hiding superseded cancelled history when the participant is currently registered again for the same event, showing only the latest recent cancellation per event, and hiding cancelled entries after one day.
@@ -338,14 +346,35 @@ Current automated coverage includes:
 Current passing result:
 
 ```text
-112 tests passed, 434 assertions
+114 tests passed, 440 assertions
 ```
 
 The testing guide is documented in `docs/AUTOMATED_TESTING.md`.
 
+Frontend verification now includes:
+
+```text
+npm run test
+npm run lint
+npm run build
+```
+
+The React frontend now includes categorized Vitest and React Testing Library tests
+under `tipon-web/src/app/tests`, covering AccessControl, Admin, Attendance, Auth,
+Components, Events, Notifications, Organizer, Registrations, and Store behavior.
+Current frontend coverage includes admin user management, organizer dashboard
+totals, manage-events filtering/actions, registrant lists, AppStore state changes,
+shared component states, auth, route access, notifications, event browsing, event
+forms, attendance badges, and My Registrations.
+
+Current passing frontend result:
+
+```text
+25 test files passed, 88 tests passed
+```
+
 ### Still Needed
 
-- Add frontend or component tests where practical.
 - Configure a basic CI/CD pipeline.
 - Prepare final deployment steps.
 - Prepare final project documentation and presentation.
@@ -354,6 +383,6 @@ The testing guide is documented in `docs/AUTOMATED_TESTING.md`.
 
 Tipon has completed the requirements and system design phases and is currently in the late development phase. The system already includes working participant, organizer, and admin workflows. Validation and security work has started through request validation, role-based access control, ownership checks, upload restrictions, and database constraints.
 
-Recent work focused on making the mixed React and Livewire frontend feel like one coherent application and adding automated Laravel feature tests for backend workflows. The Browse Events page now has more reliable search, registration, cancellation, notification, and theme-setting behavior. The React and Livewire notification and theme controls are being aligned to one convention, while thumbnail optimization and UI fixes have improved performance and readability.
+Recent work focused on making the mixed React and Livewire frontend feel like one coherent application and adding automated Laravel and frontend tests for critical workflows. The Browse Events page now has more reliable search, registration, cancellation, notification, and theme-setting behavior. The React and Livewire notification and theme controls are being aligned to one convention, while thumbnail optimization and UI fixes have improved performance and readability.
 
-The next major milestone is to extend testing to frontend/component areas where practical, configure a basic CI/CD pipeline, and prepare the project for final review or deployment.
+The next major milestone is to configure a basic CI/CD pipeline and prepare the project for final review or deployment.

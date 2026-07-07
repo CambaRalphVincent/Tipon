@@ -18,6 +18,8 @@ import { Textarea } from "./ui/textarea";
 import { cn } from "./ui/utils";
 import { useAppStore } from "../store/AppStore";
 import type { EventItem } from "../data/mockData";
+import { hasDuplicateOpenEventTitleForOrganizer } from "../lib/eventFilters";
+import { toEventDateTimeInputParts, toEventDateTimePayload } from "../lib/format";
 
 interface FormState {
   title: string;
@@ -51,14 +53,14 @@ const emptyForm: FormState = {
 };
 
 function toFormState(event: EventItem): FormState {
-  const d = new Date(event.eventDate);
-  const pad = (n: number) => String(n).padStart(2, "0");
+  const eventDateTime = toEventDateTimeInputParts(event.eventDate);
+
   return {
     title: event.title,
     description: event.description,
     venue: event.venue,
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    date: eventDateTime.date,
+    time: eventDateTime.time,
     capacity: event.capacity,
     cover_image_path: event.cover_image_path,
   };
@@ -227,12 +229,11 @@ export function EventFormDialog({
     set("cover_image_path", "");
   };
 
-  const isDuplicateTitle = events.some(
-    (e) =>
-      e.organizerId === currentUser?.id &&
-      e.status === "open" &&
-      e.id !== event?.id &&
-      e.title?.trim().toLowerCase() === form.title.trim().toLowerCase(),
+  const isDuplicateTitle = hasDuplicateOpenEventTitleForOrganizer(
+    events,
+    currentUser?.id,
+    form.title,
+    event?.id,
   );
 
   const valid =
@@ -249,7 +250,7 @@ export function EventFormDialog({
       title: form.title.trim(),
       description: form.description.trim(),
       venue: form.venue.trim(),
-      eventDate: new Date(`${form.date}T${form.time || "14:00"}`).toISOString(),
+      eventDate: toEventDateTimePayload(form.date, form.time),
       capacity: Number(form.capacity),
       cover_image_path: form.cover_image_path || DEFAULT_COVER,
     };

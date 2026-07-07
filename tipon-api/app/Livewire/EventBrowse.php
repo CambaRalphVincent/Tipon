@@ -24,7 +24,7 @@ class EventBrowse extends Component
             ->with('organizer:id,name')
             ->withCount(['registrations as registered_count' => fn ($q) => $q->where('status', 'registered')])
             ->where('status', Event::STATUS_OPEN)
-            ->where('event_date', '>', now())
+            ->where('event_date', '>', Event::currentEventDateForStorage())
             ->when($this->query, function ($q) {
                 $q->where(function ($q) {
                     $q->where('title', 'like', "%{$this->query}%")

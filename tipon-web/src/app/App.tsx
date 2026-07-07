@@ -54,7 +54,7 @@ function RouteStatusScreen({ message }: { message: string }) {
   );
 }
 
-function AppRoutes() {
+export function AppRoutes() {
   const { initialized, currentUser, role } = useAppStore();
 
   if (!initialized) {

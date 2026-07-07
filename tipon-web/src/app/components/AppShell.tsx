@@ -19,6 +19,11 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 import { BrandLogo } from "./BrandLogo";
 import { useAppStore } from "../store/AppStore";
 import { LIVEWIRE_BASE_URL } from "../lib/api";
+import {
+  getHomeHrefForRole,
+  getNavigationItemsForRole,
+  isNavigationItemActive,
+} from "../lib/navigation";
 
 interface NavItem {
   to: string;
@@ -30,19 +35,13 @@ interface NavItem {
   hardNavigate?: boolean;
 }
 
-const PARTICIPANT_NAV: NavItem[] = [
-  { to: "/events", label: "Browse Events", icon: CalendarDays, hardNavigate: true },
-  { to: "/my-registrations", label: "My Registrations", icon: Ticket },
-];
-
-const ORGANIZER_NAV: NavItem[] = [
-  { to: "/organizer", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/organizer/events", label: "Manage Events", icon: ListChecks },
-];
-
-const ADMIN_NAV: NavItem[] = [
-  { to: "/admin", label: "User Management", icon: Users },
-];
+const NAV_ICONS: Record<string, NavItem["icon"]> = {
+  "/events": CalendarDays,
+  "/my-registrations": Ticket,
+  "/organizer": LayoutDashboard,
+  "/organizer/events": ListChecks,
+  "/admin": Users,
+};
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { role, currentUser, logout } = useAppStore();
@@ -54,13 +53,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     .map((p) => p[0])
     .join("")
     .slice(0, 2);
-  const items = role === "admin" ? ADMIN_NAV : role === "organizer" ? ORGANIZER_NAV : PARTICIPANT_NAV;
-  const homeHref =
-    role === "admin"
-      ? "/admin"
-      : role === "organizer"
-        ? "/organizer"
-        : `${LIVEWIRE_BASE_URL}/events`;
+  const items = getNavigationItemsForRole(role);
+  const homeHref = getHomeHrefForRole(role, LIVEWIRE_BASE_URL);
   const logo = <BrandLogo layout="horizontal" />;
 
   return (
@@ -77,9 +71,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="flex flex-col gap-1">
         {items.map((item) => {
-          const active =
-            location.pathname === item.to ||
-            (item.to !== "/organizer" && location.pathname.startsWith(item.to));
+          const active = isNavigationItemActive(location.pathname, item);
+          const Icon = NAV_ICONS[item.to];
           const linkClassName = cn(
             "flex items-center gap-3 rounded-xl border px-3 py-2 text-sm transition-colors",
             active
@@ -88,12 +81,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           );
           return item.hardNavigate ? (
             <a key={item.to} href={`${LIVEWIRE_BASE_URL}${item.to}`} onClick={onNavigate} className={linkClassName}>
-              <item.icon className="size-4" />
+              <Icon className="size-4" />
               {item.label}
             </a>
           ) : (
             <Link key={item.to} to={item.to} onClick={onNavigate} className={linkClassName}>
-              <item.icon className="size-4" />
+              <Icon className="size-4" />
               {item.label}
             </Link>
           );

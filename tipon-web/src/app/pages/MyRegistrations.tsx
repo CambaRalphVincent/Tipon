@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, MapPin, Ticket } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { TriggerButton } from "../components/TriggerButton";
@@ -18,8 +18,13 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { AttendanceBadge, RegistrationStatusBadge } from "../components/StatusBadge";
 import { CapacityBar } from "../components/CapacityBar";
 import { cn } from "../components/ui/utils";
-import { formatEventDate, formatEventTime, isPast } from "../lib/format";
+import { compareEventDateTimes, formatEventDate, formatEventTime } from "../lib/format";
 import { LIVEWIRE_BASE_URL } from "../lib/api";
+import {
+  getRegistrationTabSummary,
+  getRegistrationTabItems,
+  type RegistrationTab,
+} from "../lib/myRegistrations";
 import { useAppStore } from "../store/AppStore";
 import type { EventItem, Registration } from "../data/mockData";
 
@@ -31,6 +36,7 @@ interface RegItem {
 export function MyRegistrations() {
   const { currentUser, registrations, eventById, cancelRegistration, confirmedCountFor } = useAppStore();
   const currentUserId = currentUser?.id ?? "";
+  const [activeTab, setActiveTab] = useState<RegistrationTab>("upcoming");
 
   const mine = useMemo(
     () =>
@@ -38,46 +44,20 @@ export function MyRegistrations() {
         .filter((r) => r.userId === currentUserId)
         .map((r) => ({ reg: r, event: eventById(r.eventId) }))
         .filter((x): x is RegItem => Boolean(x.event))
-        .sort((a, b) => +new Date(b.event.eventDate) - +new Date(a.event.eventDate)),
+        .sort((a, b) => compareEventDateTimes(b.event.eventDate, a.event.eventDate)),
     [registrations, currentUserId, eventById],
   );
 
-  const upcoming = mine.filter(
-    (x) => x.reg.status === "registered" && x.event.status === "open" && !isPast(x.event.eventDate),
-  );
-  const past = mine.filter(
-    (x) => x.reg.status === "registered" && (x.event.status === "completed" || isPast(x.event.eventDate)),
-  );
-  const activeEventIds = new Set(
-    mine.filter((x) => x.reg.status === "registered").map((x) => x.reg.eventId),
-  );
-  const recentCancellationCutoff = Date.now() - 24 * 60 * 60 * 1000;
-  const cancelled = Array.from(
-    mine
-      .filter((x) => {
-        const cancelledAt = x.reg.updatedAt ?? x.reg.createdAt;
-
-        return (
-          x.reg.status === "cancelled" &&
-          !activeEventIds.has(x.reg.eventId) &&
-          new Date(cancelledAt).getTime() >= recentCancellationCutoff
-        );
-      })
-      .sort(
-        (a, b) =>
-          +new Date(b.reg.updatedAt ?? b.reg.createdAt) -
-          +new Date(a.reg.updatedAt ?? a.reg.createdAt),
-      )
-      .reduce((itemsByEvent, item) => {
-        if (!itemsByEvent.has(item.reg.eventId)) {
-          itemsByEvent.set(item.reg.eventId, item);
-        }
-
-        return itemsByEvent;
-      }, new Map<string, RegItem>())
-      .values(),
-  );
+  const tabItems = getRegistrationTabItems(mine);
+  const upcoming = tabItems.upcoming;
+  const past = tabItems.past;
+  const cancelled = tabItems.cancelled;
   const totalActive = upcoming.length;
+  const tabSummary = getRegistrationTabSummary(activeTab, {
+    upcoming: upcoming.length,
+    past: past.length,
+    cancelled: cancelled.length,
+  });
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -86,11 +66,11 @@ export function MyRegistrations() {
           <h1 className="text-[1.75rem] font-extrabold leading-none tracking-tight">My Registrations</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Track your confirmed, attended, and cancelled event registrations in one place.
+          Track your confirmed events, attendance history, and recent cancellations in one place.
         </p>
       </div>
 
-      <Tabs defaultValue="upcoming">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as RegistrationTab)}>
         <TabsList className="h-auto flex-wrap gap-1 bg-foreground/[0.03] p-1">
           <TabsTrigger value="upcoming" className="rounded-lg px-3 py-1.5">
             Upcoming ({upcoming.length})
@@ -104,40 +84,52 @@ export function MyRegistrations() {
         </TabsList>
 
         {mine.length > 0 && (
-          <p className="mt-4 text-xs text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{mine.length}</span> registration
-            {mine.length === 1 ? "" : "s"} with{" "}
-            <span className="font-semibold text-foreground">{totalActive}</span> upcoming.
-          </p>
+          <div className="mt-4 space-y-1 text-xs text-muted-foreground">
+            <p>
+              {tabSummary}{" "}
+              <span className="font-semibold text-foreground">{totalActive}</span> active upcoming.
+            </p>
+            {activeTab === "cancelled" && (
+              <p>
+                Recent cancellations are shown for 24 hours. Registering again removes that event from this tab.
+              </p>
+            )}
+          </div>
         )}
 
         <TabsContent value="upcoming" className="mt-4">
-          <RegistrationList
-            items={upcoming}
-            confirmedCountFor={confirmedCountFor}
-            onCancel={cancelRegistration}
-            cancellable
-            emptyTitle="No upcoming registrations"
-            emptyDescription="Events you register for will appear here with date, venue, capacity, and cancellation options."
-            showBrowseAction
-          />
+          {activeTab === "upcoming" && (
+            <RegistrationList
+              items={upcoming}
+              confirmedCountFor={confirmedCountFor}
+              onCancel={cancelRegistration}
+              cancellable
+              emptyTitle="No upcoming registrations"
+              emptyDescription="Events you register for will appear here with date, venue, capacity, and cancellation options."
+              showBrowseAction
+            />
+          )}
         </TabsContent>
         <TabsContent value="past" className="mt-4">
-          <RegistrationList
-            items={past}
-            confirmedCountFor={confirmedCountFor}
-            showAttendance
-            emptyTitle="No completed events yet"
-            emptyDescription="After you attend an event, it will move here with your attendance status."
-          />
+          {activeTab === "past" && (
+            <RegistrationList
+              items={past}
+              confirmedCountFor={confirmedCountFor}
+              showAttendance
+              emptyTitle="No completed events yet"
+              emptyDescription="After you attend an event, it will move here with your attendance status."
+            />
+          )}
         </TabsContent>
         <TabsContent value="cancelled" className="mt-4">
-          <RegistrationList
-            items={cancelled}
-            confirmedCountFor={confirmedCountFor}
-            emptyTitle="No cancelled registrations"
-            emptyDescription="Cancelled registrations are kept here so you can review your registration history."
-          />
+          {activeTab === "cancelled" && (
+            <RegistrationList
+              items={cancelled}
+              confirmedCountFor={confirmedCountFor}
+              emptyTitle="No recent cancellations"
+              emptyDescription="Cancelled registrations appear here for 24 hours unless you register for the event again."
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -186,11 +178,12 @@ function RegistrationList({
 
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map(({ reg, event }) => (
+      {items.map(({ reg, event }, index) => (
         <RegistrationCard
           key={reg.id}
           reg={reg}
           event={event}
+          priority={index < 3}
           filled={confirmedCountFor(event.id)}
           cancellable={cancellable}
           showAttendance={showAttendance}
@@ -204,6 +197,7 @@ function RegistrationList({
 function RegistrationCard({
   reg,
   event,
+  priority,
   filled,
   cancellable,
   showAttendance,
@@ -211,6 +205,7 @@ function RegistrationCard({
 }: {
   reg: Registration;
   event: EventItem;
+  priority: boolean;
   filled: number;
   cancellable: boolean;
   showAttendance: boolean;
@@ -221,13 +216,20 @@ function RegistrationCard({
   const nearlyFull = event.capacity > 0 && Math.round((filled / event.capacity) * 100) >= 80 && !full;
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl">
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card transition-all duration-200 [contain-intrinsic-size:24rem] [content-visibility:auto] hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl">
       <a href={`${LIVEWIRE_BASE_URL}/events/${event.id}`} className="relative aspect-video overflow-hidden bg-muted">
         <ImageWithFallback
           src={event.cover_image_path}
           alt={event.title}
+          width={960}
+          height={540}
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
+          fetchPriority={priority ? "high" : "low"}
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/45 via-black/20 to-transparent" />
         <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
           <RegistrationStatusBadge status={reg.status} />
           {showAttendance && <AttendanceBadge status={reg.attendance} />}

@@ -19,7 +19,7 @@ their registration history.
 | Charts | Recharts |
 | Notifications | Laravel database notifications (in-app, polymorphic) |
 | Transactional email | Brevo (HTTP API transport via `symfony/brevo-mailer`) |
-| Testing | PHPUnit feature tests, organized by workflow/category |
+| Testing | PHPUnit feature tests and Vitest/React Testing Library frontend tests, organized by workflow/category |
 
 **Architecture:** mixed full-stack architecture inside one repository. The React
 single-page app (`tipon-web`) handles authentication, organizer pages, admin pages,
@@ -204,7 +204,7 @@ cd tipon-api
 php artisan test
 ```
 
-The current backend suite passes with **112 tests and 434 assertions**. For the
+The current backend suite passes with **114 tests and 440 assertions**. For the
 test folder structure, covered cases, and Laravel testing concepts used, see
 [docs/AUTOMATED_TESTING.md](docs/AUTOMATED_TESTING.md).
 
@@ -218,6 +218,19 @@ npm run dev
 
 The SPA expects the API at the URL configured in `src/app/lib/api.ts` (defaults to
 `http://localhost:8000/api`).
+
+Frontend verification commands:
+
+```bash
+npm run test
+npm run lint
+npm run build
+```
+
+Frontend tests are categorized under `tipon-web/src/app/tests` for
+AccessControl, Admin, Attendance, Auth, Components, Events, Notifications,
+Organizer, Registrations, and Store. The current frontend suite passes with
+**25 test files and 88 tests**.
 
 ## API Overview
 
@@ -395,4 +408,5 @@ and matches the supervisor's requested structure.
   notification-delivery failure resilience, auth normalization, event update edge
   cases, already-cancelled registration protection, capacity-reduction blocking,
   event-cancellation side effects, participant re-registration history display,
-  and individual Livewire notification read ownership.
+  Philippines-local event schedule handling, and individual Livewire notification
+  read ownership.

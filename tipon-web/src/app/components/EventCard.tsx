@@ -10,7 +10,13 @@ import { formatEventDate, formatEventTime } from "../lib/format";
 import { useAppStore } from "../store/AppStore";
 import type { EventItem } from "../data/mockData";
 
-export function EventCard({ event }: { event: EventItem }) {
+export function EventCard({
+  event,
+  loading = "eager",
+}: {
+  event: EventItem;
+  loading?: "eager" | "lazy";
+}) {
   const navigate = useNavigate();
   const { confirmedCountFor, isFull, registrationFor } = useAppStore();
 
@@ -26,6 +32,7 @@ export function EventCard({ event }: { event: EventItem }) {
         <ImageWithFallback
           src={event.cover_image_path}
           alt={event.title}
+          loading={loading}
           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         {(cancelled || completed || full || registered) && (

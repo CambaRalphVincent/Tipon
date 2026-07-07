@@ -9,8 +9,9 @@ interface CapacityBarProps {
 
 export function CapacityBar({ filled, capacity, className, showLabel = true }: CapacityBarProps) {
   const pct = capacity > 0 ? Math.min(100, Math.round((filled / capacity) * 100)) : 0;
-  const full = filled >= capacity;
+  const full = capacity > 0 && filled >= capacity;
   const nearlyFull = pct >= 80 && !full;
+  const remaining = Math.max(0, capacity - filled);
 
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -20,7 +21,7 @@ export function CapacityBar({ filled, capacity, className, showLabel = true }: C
             {filled} / {capacity} registered
           </span>
           <span className={cn("whitespace-nowrap", full && "text-red-400", nearlyFull && "text-amber-400")}>
-            {full ? "Full" : `${capacity - filled} left`}
+            {full ? "Full" : `${remaining} left`}
           </span>
         </div>
       )}

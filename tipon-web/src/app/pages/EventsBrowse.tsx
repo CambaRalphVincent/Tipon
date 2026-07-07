@@ -3,21 +3,14 @@ import { CalendarX2, Search } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { EventCard } from "../components/EventCard";
 import { useAppStore } from "../store/AppStore";
-import { isPast } from "../lib/format";
+import { getVisibleBrowseEvents } from "../lib/eventFilters";
 
 export function EventsBrowse() {
   const { events } = useAppStore();
   const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
-    return events
-      .filter((e) => !isPast(e.eventDate))
-      .filter((e) =>
-        query.trim()
-          ? (e.title + e.description + e.venue).toLowerCase().includes(query.toLowerCase())
-          : true,
-      )
-      .sort((a, b) => +new Date(a.eventDate) - +new Date(b.eventDate));
+    return getVisibleBrowseEvents(events, query);
   }, [events, query]);
 
   return (

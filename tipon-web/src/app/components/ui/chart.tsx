@@ -104,6 +104,15 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+type ChartPayloadItem = {
+  color?: string;
+  dataKey?: string | number;
+  fill?: string;
+  name?: string | number;
+  payload?: Record<string, unknown>;
+  value?: string | number;
+};
+
 function ChartTooltipContent({
   active,
   payload,
@@ -118,12 +127,24 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
-}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-  React.ComponentProps<"div"> & {
+}: React.ComponentProps<"div"> & {
+    active?: boolean;
+    color?: string;
+    formatter?: (
+      value: NonNullable<ChartPayloadItem["value"]>,
+      name: NonNullable<ChartPayloadItem["name"]>,
+      item: ChartPayloadItem,
+      index: number,
+      payload?: Record<string, unknown>,
+    ) => React.ReactNode;
     hideLabel?: boolean;
     hideIndicator?: boolean;
     indicator?: "line" | "dot" | "dashed";
+    label?: React.ReactNode;
+    labelClassName?: string;
+    labelFormatter?: (value: React.ReactNode, payload: ChartPayloadItem[]) => React.ReactNode;
     nameKey?: string;
+    payload?: ChartPayloadItem[];
     labelKey?: string;
   }) {
   const { config } = useChart();
@@ -182,7 +203,7 @@ function ChartTooltipContent({
         {payload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          const indicatorColor = color || item.payload.fill || item.color;
+          const indicatorColor = color || item.payload?.fill || item.fill || item.color;
 
           return (
             <div
@@ -257,9 +278,11 @@ function ChartLegendContent({
   verticalAlign = "bottom",
   nameKey,
 }: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+  {
     hideIcon?: boolean;
     nameKey?: string;
+    payload?: ChartPayloadItem[];
+    verticalAlign?: "top" | "bottom" | "middle";
   }) {
   const { config } = useChart();
 

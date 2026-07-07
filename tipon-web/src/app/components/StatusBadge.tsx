@@ -33,10 +33,19 @@ export function RegistrationStatusBadge({ status }: { status: RegistrationStatus
 
 export function AttendanceBadge({ status }: { status: AttendanceStatus }) {
   const map: Record<AttendanceStatus, { label: string; className: string }> = {
-    present: { label: "Present", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    absent: { label: "Absent", className: "bg-red-500/15 text-red-400 border-red-500/30" },
-    pending: { label: "Pending", className: "bg-muted text-muted-foreground border-border" },
+    present: {
+      label: "Present",
+      className: "border-emerald-300/70 bg-emerald-500 text-emerald-950 shadow-lg shadow-black/30 ring-1 ring-black/15",
+    },
+    absent: {
+      label: "Absent",
+      className: "border-red-200/70 bg-red-500 text-white shadow-lg shadow-black/30 ring-1 ring-black/15",
+    },
+    pending: {
+      label: "Pending",
+      className: "border-slate-300/35 bg-slate-900/90 text-slate-100 shadow-lg shadow-black/30 ring-1 ring-white/10",
+    },
   };
   const cfg = map[status];
-  return <Badge variant="outline" className={cn(cfg.className)}>{cfg.label}</Badge>;
+  return <Badge variant="outline" className={cn("font-semibold", cfg.className)}>{cfg.label}</Badge>;
 }

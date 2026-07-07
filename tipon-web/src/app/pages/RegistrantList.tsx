@@ -34,7 +34,7 @@ interface RowItem {
 }
 
 function adaptRow(r: ApiRegistration): RowItem | null {
-  if (!r.user) return null;
+  if (r.status !== "registered" || !r.user) return null;
   return {
     reg: adaptRegistration(r),
     user: {

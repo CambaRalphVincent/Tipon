@@ -1,13 +1,14 @@
 # Automated Testing
 
-This document explains the automated Laravel tests added for Tipon, how they are
-organized, and how to run them.
+This document explains the automated Laravel and React frontend tests added for
+Tipon, how they are organized, and how to run them.
 
 ## Purpose
 
-Automated testing helps confirm that Tipon's important backend rules still work
-after code changes. Instead of manually testing every workflow in the browser,
-Laravel can run the test suite and quickly report whether a feature broke.
+Automated testing helps confirm that Tipon's important backend rules and frontend
+workflows still work after code changes. Instead of manually testing every
+workflow in the browser, the Laravel and React test suites can quickly report
+whether a feature broke.
 
 For Tipon, the tests verify rules such as:
 
@@ -215,6 +216,8 @@ Checks organizer event management:
 - Organizer can cancel their own event.
 - Event cancellation cancels active registrations and notifies active registrants.
 - Duplicate open event titles are rejected case-insensitively.
+- Event creation preserves Philippines-local event time values.
+- Legacy UTC-style event date payloads are converted back to Philippines-local time.
 
 Additional event files:
 
@@ -478,11 +481,109 @@ Storage::fake('public');
 The current backend test suite passes:
 
 ```text
-112 passed, 434 assertions
+114 passed, 440 assertions
 ```
 
 Command used:
 
 ```bash
 php artisan test --stop-on-failure
+```
+
+The React frontend includes Vitest and React Testing Library coverage for
+frontend display, routing, store/API behavior, and component interaction logic:
+
+- Auth role redirects, login form submission, registration password checklist,
+  and OTP input limits.
+- Admin user loading, loading/error states, search filtering, participant and
+  organizer counts, participant promotion, organizer creation validation, email
+  normalization, and table updates after organizer creation.
+- Browse Events filtering, searching, sorting, registered/full badges, and
+  duplicate title checks.
+- Organizer Dashboard ownership filtering, dashboard totals, attendance-rate
+  calculations, empty active-event messaging, and upcoming event ordering.
+- Manage Events ownership filtering, status filters and counts, completed/cancelled
+  action disabling, row navigation, and cancel confirmation behavior.
+- Registrant List loading, active registrant display, cancelled-registration
+  exclusion, participant details, present/absent attendance marking, and empty
+  state rendering.
+- Organizer event form duplicate warnings, edit prefill behavior, and thumbnail
+  file-type validation.
+- My Registrations tab categorization, active-tab rendering, cancelled-history
+  cleanup rules, cancellation controls, and image loading behavior.
+- Attendance badge rendering, contrast classes, and Past-tab attendance display.
+- AppStore registration and event state behavior, including re-registering after
+  cancelled history, cancellation count updates, failed registration toasts,
+  create/update/cancel event state updates, and logout state clearing.
+- Shared CapacityBar and EventCard display states, including zero-capacity handling,
+  full/registered/cancelled/completed states, and lazy image loading.
+- Role-specific navigation items, home links, and route access decisions.
+- Notification ownership filtering, unread counts, newest-first ordering,
+  mark-all-read, and single-notification read actions.
+
+Frontend tests are organized by feature area under:
+
+```text
+tipon-web/src/app/tests
+```
+
+Current frontend test structure:
+
+```text
+src/app/tests/
+|-- AccessControl/
+|   |-- RoleNavigationTest.test.ts
+|   `-- RouteAccessUiTest.test.tsx
+|-- Admin/
+|   |-- AdminDashboardUiTest.test.tsx
+|   `-- CreateOrganizerDialogTest.test.tsx
+|-- Attendance/
+|   |-- AttendanceBadgeTest.test.ts
+|   |-- AttendanceUiTest.test.tsx
+|   `-- RegistrantListUiTest.test.tsx
+|-- Auth/
+|   |-- AuthUiTest.test.tsx
+|   `-- LoginTest.test.ts
+|-- Components/
+|   |-- CapacityBarTest.test.tsx
+|   `-- EventCardTest.test.tsx
+|-- Events/
+|   |-- EventBrowseTest.test.ts
+|   |-- EventBrowseUiTest.test.tsx
+|   |-- EventDateTimeTest.test.ts
+|   |-- EventFormUiTest.test.tsx
+|   |-- EventManagementTest.test.ts
+|   `-- ManageEventsUiTest.test.tsx
+|-- Notifications/
+|   |-- NotificationBellUiTest.test.tsx
+|   `-- NotificationTest.test.ts
+|-- Organizer/
+|   `-- OrganizerDashboardUiTest.test.tsx
+|-- Registrations/
+|   |-- MyRegistrationsTest.test.ts
+|   |-- MyRegistrationsUiTest.test.tsx
+|   `-- RegistrationTabTest.test.ts
+`-- Store/
+    |-- AppStoreEventTest.test.tsx
+    `-- AppStoreRegistrationTest.test.tsx
+```
+
+Command used:
+
+```bash
+cd tipon-web
+npm run test
+```
+
+`npm run test` uses `vitest.config.ts`, which keeps the test runner focused on
+React/Vitest behavior and avoids loading the Tailwind Vite native plugin during
+unit tests.
+
+The current frontend suite passes with **25 test files and 88 tests**.
+
+Frontend lint and production build also pass:
+
+```bash
+npm run lint
+npm run build
 ```

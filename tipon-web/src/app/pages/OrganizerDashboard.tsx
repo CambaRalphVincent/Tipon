@@ -27,7 +27,7 @@ import { Button } from "../components/ui/button";
 import { CapacityBar } from "../components/CapacityBar";
 import { EventStatusBadge } from "../components/StatusBadge";
 import { StatCard } from "../components/StatCard";
-import { formatEventDate, formatEventTime } from "../lib/format";
+import { compareEventDateTimes, formatEventDate, formatEventTime } from "../lib/format";
 import { useAppStore } from "../store/AppStore";
 
 const shortLabel = (value: string, max = 18) =>
@@ -41,7 +41,7 @@ export function OrganizerDashboard() {
     () =>
       events
         .filter((e) => e.organizerId === organizerId)
-        .sort((a, b) => +new Date(a.eventDate) - +new Date(b.eventDate)),
+        .sort((a, b) => compareEventDateTimes(a.eventDate, b.eventDate)),
     [events, organizerId],
   );
   const activeEvents = myEvents.filter((e) => e.status === "open");

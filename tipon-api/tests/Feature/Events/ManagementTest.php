@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -38,6 +39,68 @@ class ManagementTest extends TestCase
             'title' => 'Campus Tech Summit',
             'status' => Event::STATUS_OPEN,
         ]);
+    }
+
+    public function test_event_date_preserves_philippines_local_time_when_created(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-07 12:00:00', 'Asia/Manila'));
+
+        try {
+            $organizer = User::factory()->create(['role' => 'organizer']);
+
+            Sanctum::actingAs($organizer);
+
+            $response = $this->postJson('/api/events', [
+                'title' => 'Philippines Local Schedule',
+                'description' => 'A timezone-sensitive event.',
+                'venue' => 'Main Auditorium',
+                'event_date' => '2026-07-08T15:45:00',
+                'capacity' => 50,
+            ]);
+
+            $response
+                ->assertCreated()
+                ->assertJsonPath('event_date', '2026-07-08T15:45:00');
+
+            $this->assertDatabaseHas('events', [
+                'organizer_id' => $organizer->id,
+                'title' => 'Philippines Local Schedule',
+                'event_date' => '2026-07-08 15:45:00',
+            ]);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_event_date_converts_legacy_utc_payloads_to_philippines_local_time(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-07 12:00:00', 'Asia/Manila'));
+
+        try {
+            $organizer = User::factory()->create(['role' => 'organizer']);
+
+            Sanctum::actingAs($organizer);
+
+            $response = $this->postJson('/api/events', [
+                'title' => 'Legacy UTC Schedule',
+                'description' => 'A timezone-sensitive event.',
+                'venue' => 'Main Auditorium',
+                'event_date' => '2026-07-08T07:45:00.000Z',
+                'capacity' => 50,
+            ]);
+
+            $response
+                ->assertCreated()
+                ->assertJsonPath('event_date', '2026-07-08T15:45:00');
+
+            $this->assertDatabaseHas('events', [
+                'organizer_id' => $organizer->id,
+                'title' => 'Legacy UTC Schedule',
+                'event_date' => '2026-07-08 15:45:00',
+            ]);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_participant_cannot_create_an_event(): void

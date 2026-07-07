@@ -4,6 +4,7 @@ import { TriggerButton } from "./TriggerButton";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "./ui/utils";
 import { formatRelative } from "../lib/format";
+import { getNotificationsForUser, getUnreadNotificationCount } from "../lib/notifications";
 import { useAppStore } from "../store/AppStore";
 import type { AppNotification, NotificationType } from "../data/mockData";
 
@@ -25,10 +26,8 @@ export function NotificationBell() {
   const { currentUser, notifications, markNotificationRead, markAllNotificationsRead } =
     useAppStore();
 
-  const mine: AppNotification[] = notifications
-    .filter((n) => n.userId === (currentUser?.id ?? ""))
-    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-  const unread = mine.filter((n) => !n.readAt).length;
+  const mine: AppNotification[] = getNotificationsForUser(notifications, currentUser?.id);
+  const unread = getUnreadNotificationCount(mine);
 
   return (
     <Popover>

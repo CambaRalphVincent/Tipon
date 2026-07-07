@@ -39,7 +39,7 @@ import {
 import { EventStatusBadge } from "../components/StatusBadge";
 import { CapacityBar } from "../components/CapacityBar";
 import { EventFormDialog } from "../components/EventFormDialog";
-import { formatEventDate, formatEventTime } from "../lib/format";
+import { compareEventDateTimes, formatEventDate, formatEventTime } from "../lib/format";
 import { useAppStore } from "../store/AppStore";
 import { cn } from "../components/ui/utils";
 import type { EventItem, EventStatus } from "../data/mockData";
@@ -74,7 +74,7 @@ export function ManageEvents() {
         .sort((a, b) => {
           const rank = statusRank[a.status] - statusRank[b.status];
           if (rank !== 0) return rank;
-          return +new Date(a.eventDate) - +new Date(b.eventDate);
+          return compareEventDateTimes(a.eventDate, b.eventDate);
         }),
     [events, organizerId],
   );

@@ -7,6 +7,9 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "./utils";
 import { buttonVariants } from "./button";
 
+type CalendarClassNames = NonNullable<React.ComponentProps<typeof DayPicker>["classNames"]>;
+type CalendarComponents = NonNullable<React.ComponentProps<typeof DayPicker>["components"]>;
+
 function Calendar({
   className,
   classNames,
@@ -58,15 +61,15 @@ function Calendar({
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
-      }}
+      } as CalendarClassNames}
       components={{
-        IconLeft: ({ className, ...props }) => (
+        IconLeft: ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
           <ChevronLeft className={cn("size-4", className)} {...props} />
         ),
-        IconRight: ({ className, ...props }) => (
+        IconRight: ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
           <ChevronRight className={cn("size-4", className)} {...props} />
         ),
-      }}
+      } as CalendarComponents}
       {...props}
     />
   );

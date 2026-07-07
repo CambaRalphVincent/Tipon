@@ -1,3 +1,37 @@
+# Tipon API
+
+Laravel backend and Livewire participant pages for Tipon.
+
+## Automated Testing
+
+Backend tests are categorized under `tests/Feature` by system area:
+
+- `AccessControl/`
+- `Admin/`
+- `Api/`
+- `Attendance/`
+- `Auth/`
+- `Database/`
+- `Events/`
+- `Livewire/`
+- `Notifications/`
+- `Registrations/`
+- `Smoke/`
+- `Uploads/`
+
+Run the backend suite from this folder:
+
+```bash
+php artisan test
+```
+
+Current result: **114 tests passed, 440 assertions**.
+
+For the full backend test structure, covered cases, and commands, see
+[`../docs/AUTOMATED_TESTING.md`](../docs/AUTOMATED_TESTING.md).
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

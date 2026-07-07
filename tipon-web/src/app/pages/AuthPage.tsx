@@ -19,6 +19,7 @@ import { ThemeSwitcher } from "../components/ThemeSwitcher";
 import { BrandLogo } from "../components/BrandLogo";
 import { cn } from "../components/ui/utils";
 import { LIVEWIRE_BASE_URL } from "../lib/api";
+import { getAuthRedirectTarget } from "../lib/authFlow";
 import { PASSWORD_RULES } from "../lib/passwordRules";
 import { useAppStore } from "../store/AppStore";
 import type { UserRole } from "../data/mockData";
@@ -36,11 +37,11 @@ export function AuthPage() {
   const [pendingEmail, setPendingEmail] = useState("");
 
   const routeForRole = (role: UserRole) => {
-    if (role === "admin") navigate("/admin");
-    else if (role === "organizer") navigate("/organizer");
+    const target = getAuthRedirectTarget(role, LIVEWIRE_BASE_URL);
+    if (target.kind === "spa") navigate(target.path);
     // /events is served directly by tipon-api's Livewire page — a real,
     // absolute-URL navigation, not React Router's client-side routing.
-    else window.location.href = `${LIVEWIRE_BASE_URL}/events`;
+    else window.location.href = target.href;
   };
 
   return (
