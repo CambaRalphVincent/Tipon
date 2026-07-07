@@ -116,6 +116,10 @@ class RegistrationController extends Controller
     {
         $event->refreshCompletionStatus();
 
+        if ($event->organizer_id !== request()->user()->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $registrations = $event->registrations()
             ->where('status', 'registered')
             ->with('user:id,name,email')
@@ -134,7 +138,27 @@ class RegistrationController extends Controller
             ->with('event')
             ->get();
 
-        return response()->json($registrations);
+        $activeEventIds = $registrations
+            ->where('status', 'registered')
+            ->pluck('event_id')
+            ->all();
+
+        $recentCancellationCutoff = now()->subDay();
+
+        $visibleRegistrations = $registrations
+            ->filter(fn (Registration $registration) => $registration->status === 'registered'
+                || (
+                    $registration->status === 'cancelled'
+                    && ! in_array($registration->event_id, $activeEventIds, strict: true)
+                    && $registration->updated_at->gte($recentCancellationCutoff)
+                ))
+            ->sortByDesc('updated_at')
+            ->unique(fn (Registration $registration) => $registration->status === 'cancelled'
+                ? "cancelled-event-{$registration->event_id}"
+                : "registration-{$registration->id}")
+            ->values();
+
+        return response()->json($visibleRegistrations);
     }
 
     // FR-07 — Participant registers for an event.
@@ -187,7 +211,11 @@ class RegistrationController extends Controller
         }
 
         // FR-11 — Notify participant of successful registration.
-        $request->user()->notify(new RegistrationStatusNotification($event, 'registered'));
+        try {
+            $request->user()->notify(new RegistrationStatusNotification($event, 'registered'));
+        } catch (Throwable) {
+            // Notification delivery must not undo a successful registration.
+        }
 
         return response()->json($registration->load('event:id,title'), 201);
     }
@@ -202,6 +230,10 @@ class RegistrationController extends Controller
         $registration->loadMissing('event');
         $registration->event->refreshCompletionStatus();
 
+        if ($registration->status === 'cancelled') {
+            return response()->json(['message' => 'Registration is already cancelled.'], 422);
+        }
+
         if ($registration->event->event_date->isPast() || $registration->event->status === Event::STATUS_COMPLETED) {
             return response()->json(['message' => 'Registration can no longer be cancelled after the event date.'], 422);
         }
@@ -209,7 +241,11 @@ class RegistrationController extends Controller
         $registration->update(['status' => 'cancelled']);
 
         // FR-11 — Notify participant of cancellation.
-        $request->user()->notify(new RegistrationStatusNotification($registration->event, 'cancelled'));
+        try {
+            $request->user()->notify(new RegistrationStatusNotification($registration->event, 'cancelled'));
+        } catch (Throwable) {
+            // Notification delivery must not undo a successful cancellation.
+        }
 
         return response()->json(['message' => 'Registration cancelled.']);
     }

@@ -38,6 +38,7 @@ export interface Registration {
   status: RegistrationStatus;
   attendance: AttendanceStatus;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AppNotification {

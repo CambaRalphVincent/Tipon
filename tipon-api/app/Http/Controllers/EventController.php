@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Notifications\RegistrationStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Throwable;
 
 class EventController extends Controller
 {
@@ -94,6 +97,18 @@ class EventController extends Controller
             return response()->json(['message' => 'You already have an active event with this title.'], 422);
         }
 
+        if (array_key_exists('capacity', $data)) {
+            $activeRegistrations = $event->registrations()
+                ->where('status', 'registered')
+                ->count();
+
+            if ($data['capacity'] < $activeRegistrations) {
+                return response()->json([
+                    'message' => 'Capacity cannot be lower than the current number of active registrations.',
+                ], 422);
+            }
+        }
+
         $event->update($data);
         $event->load('organizer:id,name')
             ->loadCount(['registrations as registered_count' => fn($q) => $q->where('status', 'registered')]);
@@ -114,7 +129,28 @@ class EventController extends Controller
             return response()->json(['message' => 'Completed events cannot be cancelled.'], 422);
         }
 
-        $event->update(['status' => Event::STATUS_CANCELLED]);
+        $registrationsToNotify = DB::transaction(function () use ($event) {
+            $registrations = $event->registrations()
+                ->where('status', 'registered')
+                ->with('user')
+                ->get();
+
+            $event->update(['status' => Event::STATUS_CANCELLED]);
+
+            $event->registrations()
+                ->where('status', 'registered')
+                ->update(['status' => 'cancelled']);
+
+            return $registrations;
+        });
+
+        foreach ($registrationsToNotify as $registration) {
+            try {
+                $registration->user->notify(new RegistrationStatusNotification($event, 'cancelled'));
+            } catch (Throwable) {
+                // Notification delivery must not undo a successful event cancellation.
+            }
+        }
 
         return response()->json(['message' => 'Event cancelled.']);
     }

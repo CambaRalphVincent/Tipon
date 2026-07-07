@@ -48,7 +48,35 @@ export function MyRegistrations() {
   const past = mine.filter(
     (x) => x.reg.status === "registered" && (x.event.status === "completed" || isPast(x.event.eventDate)),
   );
-  const cancelled = mine.filter((x) => x.reg.status === "cancelled");
+  const activeEventIds = new Set(
+    mine.filter((x) => x.reg.status === "registered").map((x) => x.reg.eventId),
+  );
+  const recentCancellationCutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const cancelled = Array.from(
+    mine
+      .filter((x) => {
+        const cancelledAt = x.reg.updatedAt ?? x.reg.createdAt;
+
+        return (
+          x.reg.status === "cancelled" &&
+          !activeEventIds.has(x.reg.eventId) &&
+          new Date(cancelledAt).getTime() >= recentCancellationCutoff
+        );
+      })
+      .sort(
+        (a, b) =>
+          +new Date(b.reg.updatedAt ?? b.reg.createdAt) -
+          +new Date(a.reg.updatedAt ?? a.reg.createdAt),
+      )
+      .reduce((itemsByEvent, item) => {
+        if (!itemsByEvent.has(item.reg.eventId)) {
+          itemsByEvent.set(item.reg.eventId, item);
+        }
+
+        return itemsByEvent;
+      }, new Map<string, RegItem>())
+      .values(),
+  );
   const totalActive = upcoming.length;
 
   return (

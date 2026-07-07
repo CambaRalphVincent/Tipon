@@ -8,9 +8,9 @@ Tipon is an Event Registration System developed as an onboarding activity to tes
 
 ## Current Overall Status
 
-Tipon is currently in **late Phase 3: Development**, with early **Phase 4: Security & Validation** already started and selected **Phase 5: Testing** activities being done manually and through initial backend feature tests.
+Tipon is currently in **late Phase 3: Development**, with early **Phase 4: Security & Validation** already started and **Phase 5: Testing** now underway through both manual testing and automated Laravel feature tests.
 
-Most core features are already working. Current work is focused on UI consistency across the React and Livewire areas, validation, bug fixing, performance refinement, and preparing the system for testing and final documentation.
+Most core features are already working. Current work is focused on UI consistency across the React and Livewire areas, validation, bug fixing, performance refinement, expanding test coverage where needed, and preparing the system for final documentation or deployment review.
 
 ## Phase 1: Requirements & Mockups
 
@@ -108,6 +108,19 @@ Most core features are already working. Current work is focused on UI consistenc
 - Added fallback non-Livewire form behavior for participant search, registration, and cancellation flows.
 - Added backend coverage for admin-created organizer OTP verification and promoted participant verification preservation.
 - Added backend coverage for login failures, including unregistered email and wrong-password cases.
+- Added categorized Laravel feature tests under `tests/Feature`, grouped by AccessControl, Admin, Api, Attendance, Auth, Database, Events, Livewire, Notifications, Registrations, Smoke, and Uploads.
+- Added automated coverage for role access boundaries, login, registration, email verification, admin organizer management, event create/update/cancel, duplicate event titles, participant registration rules, attendance marking, upload validation, and notification ownership.
+- Added automated coverage for completed/past event behavior, event validation rules, and Livewire participant web routes.
+- Added automated coverage for email verification resend behavior, notification payload/order, and upload edge cases such as required file, oversized file, rejected PDF/GIF/SVG, accepted PNG/JPG/JPEG, and generated storage filenames.
+- Added automated coverage for API response shapes, database-level constraints, and admin validation rules.
+- Added automated coverage for API/logout session behavior, registration edge cases, and organizer registrant-list ownership.
+- Added automated coverage for registration and cancellation resilience when notification delivery fails after the database update.
+- Added automated coverage for auth normalization, duplicate participant email rejection, event update edge cases, venue/status validation, and individual Livewire notification read ownership.
+- Added automated coverage for rejecting already-cancelled registration cancellation and preventing event capacity from being reduced below active registration count.
+- Added automated coverage for organizer event-cancellation side effects: active registrations are cancelled and active registrants receive notifications.
+- Added automated coverage for participant re-registration display behavior: old cancelled rows are hidden from My Registrations when the participant is currently registered again for the same event.
+- Added automated coverage for Cancelled tab cleanup: only the latest recent cancellation per event is shown, and cancelled entries are hidden after one day.
+- Added `docs/AUTOMATED_TESTING.md` to document the test folder structure, commands, covered cases, and Laravel testing tools used.
 
 ### Recent Progress
 
@@ -189,7 +202,7 @@ Most core features are already working. Current work is focused on UI consistenc
 - Capacity is required.
 - Capacity must be an integer.
 - Capacity must be at least 1.
-- Event status must be either `open` or `cancelled`.
+- Event status must be one of `open`, `cancelled`, or `completed`.
 - Cover image path is optional and has a maximum length.
 
 #### Upload Validation
@@ -212,9 +225,12 @@ Most core features are already working. Current work is focused on UI consistenc
 - Participants cannot register for cancelled or non-open events.
 - Participants cannot register twice for the same active event.
 - Event capacity cannot be exceeded.
+- Event capacity cannot be reduced below the current active registration count.
 - Registration uses database locking to prevent concurrent overbooking.
 - Participants can only cancel their own registrations.
+- Participants cannot cancel a registration that is already cancelled.
 - Organizers can only update or cancel their own events.
+- Cancelling an event cancels its active registrations and notifies the affected active registrants.
 - Organizers can only mark attendance for registrations under their own events.
 - Organizers cannot create two active events with the same title.
 - Cancelled event titles can be reused.
@@ -222,7 +238,7 @@ Most core features are already working. Current work is focused on UI consistenc
 
 ### Database-Level Constraints
 
-- Event status is limited to `open` or `cancelled`.
+- Event status is limited to `open`, `cancelled`, or `completed`.
 - Registration status is limited to `registered` or `cancelled`.
 - Attendance status is limited to `pending`, `present`, or `absent`.
 - Events must belong to an existing organizer.
@@ -251,7 +267,7 @@ Most core features are already working. Current work is focused on UI consistenc
 
 ## Phase 5: Testing & CI/CD
 
-**Status:** Started Manually, Not Yet Automated
+**Status:** Started, Automated Backend Tests Added
 
 ### Manual Testing Already Done
 
@@ -276,20 +292,59 @@ Most core features are already working. Current work is focused on UI consistenc
 - Tested that promoted participants keep their verified account state.
 - Tested login response behavior for unregistered emails and wrong passwords.
 
+### Automated Backend Testing Added
+
+The Laravel backend now includes categorized PHPUnit feature tests under
+`tipon-api/tests/Feature`. The test suite is organized by system area:
+
+- `AccessControl/AccessControlTest.php`
+- `Admin/OrganizerAccountTest.php`
+- `Api/ResponseShapeTest.php`
+- `Attendance/AttendanceTest.php`
+- `Auth/LoginTest.php`
+- `Auth/RegisterTest.php`
+- `Auth/EmailVerificationTest.php`
+- `Auth/LogoutTest.php`
+- `Database/ConstraintTest.php`
+- `Events/ManagementTest.php`
+- `Events/CompletionTest.php`
+- `Events/ValidationTest.php`
+- `Livewire/ParticipantEventRoutesTest.php`
+- `Notifications/NotificationTest.php`
+- `Registrations/OrganizerRegistrationListTest.php`
+- `Registrations/RegistrationTest.php`
+- `Smoke/HomePageTest.php`
+- `Uploads/CoverImageUploadTest.php`
+
+Current automated coverage includes:
+
+- Authentication success and failure states, including email normalization and duplicate participant email rejection.
+- API bearer-token logout and Livewire session logout behavior.
+- Participant registration, email verification, invalid/expired OTP handling, and verification-code resend behavior.
+- Admin organizer creation, participant promotion, admin validation rules, duplicate email rejection, password strength, and invalid promotion attempts.
+- API response shapes used by the frontend, including event counts, organizer data, nested registration event data, and admin user fields.
+- Database-level constraints for duplicate registrations, duplicate open event titles, reusable cancelled states, and foreign key integrity.
+- Role-based access control across participant, organizer, admin, and shared API routes.
+- Organizer event create, update, cancel, ownership checks, duplicate-title prevention, duplicate-title blocking during update, status cancellation through update, blocked capacity reduction below active registrations, and event-cancellation side effects.
+- Event validation, including required title, title/description/venue length limits, future dates, minimum capacity, invalid update status rejection, and title reuse after cancellation.
+- Completed/past event behavior, including automatic completion, blocked late registration, blocked late cancellation, and blocked organizer edits/cancellations.
+- Participant event registration, capacity blocking, duplicate-registration prevention, cancellation ownership, already-cancelled cancellation blocking, cancelled-event blocking, re-registration after cancellation, cancelled registrations not counting toward capacity, cancelled registration history, hiding superseded cancelled history when the participant is currently registered again for the same event, showing only the latest recent cancellation per event, and hiding cancelled entries after one day.
+- Organizer registrant-list behavior, including active-only event registrant lists, user details, same-role ownership protection, organizer-only event scoping, and cancelled registration history.
+- Livewire participant Browse Events and Event Detail pages, search fallback, form-based registration/cancellation, notification read-all behavior, individual notification read behavior, and notification ownership.
+- Attendance marking and attendance validation.
+- Cover image upload access, file validation, size validation, accepted/rejected file types, and generated storage filenames.
+- Notification listing, read state, ownership protection, payload content, cancellation notifications, newest-first ordering, and notification-delivery failure resilience.
+
+Current passing result:
+
+```text
+112 tests passed, 434 assertions
+```
+
+The testing guide is documented in `docs/AUTOMATED_TESTING.md`.
+
 ### Still Needed
 
-- Expand automated backend tests across the remaining workflows.
-- Expand authentication tests beyond the current login failure and organizer OTP coverage.
-- Expand email verification tests beyond the current admin-created organizer coverage.
-- Add tests for event creation and update.
-- Add tests for event capacity limits.
-- Add tests for duplicate registration prevention.
-- Add tests for role-based access control.
-- Add tests for attendance marking.
-- Add tests for upload validation.
-- Add tests for notification read and mark-all-read behavior.
-- Add tests for participant search fallback behavior.
-- Add tests for participant registration and cancellation form fallback behavior.
 - Add frontend or component tests where practical.
 - Configure a basic CI/CD pipeline.
 - Prepare final deployment steps.
@@ -299,6 +354,6 @@ Most core features are already working. Current work is focused on UI consistenc
 
 Tipon has completed the requirements and system design phases and is currently in the late development phase. The system already includes working participant, organizer, and admin workflows. Validation and security work has started through request validation, role-based access control, ownership checks, upload restrictions, and database constraints.
 
-Recent work focused on making the mixed React and Livewire frontend feel like one coherent application. The Browse Events page now has more reliable search, registration, cancellation, notification, and theme-setting behavior. The React and Livewire notification and theme controls are being aligned to one convention, while thumbnail optimization and UI fixes have improved performance and readability.
+Recent work focused on making the mixed React and Livewire frontend feel like one coherent application and adding automated Laravel feature tests for backend workflows. The Browse Events page now has more reliable search, registration, cancellation, notification, and theme-setting behavior. The React and Livewire notification and theme controls are being aligned to one convention, while thumbnail optimization and UI fixes have improved performance and readability.
 
-The next major milestone is to complete formal testing, add automated test coverage, and prepare the project for final review or deployment.
+The next major milestone is to extend testing to frontend/component areas where practical, configure a basic CI/CD pipeline, and prepare the project for final review or deployment.

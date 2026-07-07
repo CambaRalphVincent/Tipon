@@ -75,6 +75,7 @@ export function adaptRegistration(r: ApiRegistration): Registration {
     status: r.status,
     attendance: r.attendance,
     createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }
 
@@ -360,7 +361,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         const res = await registrationsApi.register(eventId);
-        setRegistrations((prev) => [...prev, adaptRegistration(res.data)]);
+        const registration = adaptRegistration(res.data);
+        setRegistrations((prev) => [
+          ...prev.filter(
+            (r) =>
+              !(
+                r.eventId === registration.eventId &&
+                r.userId === registration.userId &&
+                r.status === "cancelled"
+              ),
+          ),
+          registration,
+        ]);
         setEvents((prev) =>
           prev.map((e) => e.id === eventId ? { ...e, registeredCount: (e.registeredCount ?? 0) + 1 } : e),
         );
@@ -382,8 +394,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         await registrationsApi.cancel(reg.id);
+        const cancelledAt = new Date().toISOString();
         setRegistrations((prev) =>
-          prev.map((r) => (r.id === reg.id ? { ...r, status: "cancelled" } : r)),
+          prev
+            .filter(
+              (r) =>
+                !(
+                  r.eventId === eventId &&
+                  r.userId === reg.userId &&
+                  r.status === "cancelled"
+                ),
+            )
+            .map((r) => (r.id === reg.id ? { ...r, status: "cancelled", updatedAt: cancelledAt } : r)),
         );
         setEvents((prev) =>
           prev.map((e) =>

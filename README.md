@@ -19,7 +19,7 @@ their registration history.
 | Charts | Recharts |
 | Notifications | Laravel database notifications (in-app, polymorphic) |
 | Transactional email | Brevo (HTTP API transport via `symfony/brevo-mailer`) |
-| Testing | PHPUnit |
+| Testing | PHPUnit feature tests, organized by workflow/category |
 
 **Architecture:** mixed full-stack architecture inside one repository. The React
 single-page app (`tipon-web`) handles authentication, organizer pages, admin pages,
@@ -71,9 +71,10 @@ Tipon/
    events with the same title (case-insensitive) — enforced both server-side (a
    partial unique DB index, same pattern as duplicate-registration prevention) and
    live in the UI as the title is typed. Cancelling an event frees its title for
-   reuse. Cover image uploads are limited to **JPG, PNG, or WEBP, max 2 MB**,
-   enforced server-side (`UploadController`) so the limit can't be bypassed by the
-   client.
+   reuse. Cancelling an event also cancels its active registrations and notifies
+   the affected active registrants. Cover image uploads are limited to **JPG, PNG,
+   or WEBP, max 2 MB**, enforced server-side (`UploadController`) so the limit
+   can't be bypassed by the client.
 3. **Event Registration with Capacity Check** — the most critical workflow: on
    registration, the event row is locked (`lockForUpdate`) inside a DB transaction,
    the app checks the event is open, checks for an existing active registration
@@ -129,7 +130,8 @@ Tipon/
   (hashed, nullable), email_verification_code_expires_at (nullable), timestamps.
 - **events** — id, organizer_id (FK → users), title (max 100 chars), description
   (max 1000 chars, nullable), venue, event_date, capacity (int > 0),
-  cover_image_path (nullable), status (`open` \| `cancelled`), timestamps. A
+  cover_image_path (nullable), status (`open` \| `cancelled` \| `completed`),
+  timestamps. A
   partial unique index on
   `(organizer_id, LOWER(title)) WHERE status = 'open'` blocks an organizer from
   having two active events with the same title.
@@ -190,6 +192,21 @@ dev server together. To run just the API: `php artisan serve`. On Windows, use
 `composer run dev:win` instead — the same setup minus the Pail log tailer.
 
 Seeded admin login: `admin@tipon.com` / `password`.
+
+### Backend automated tests
+
+Tipon includes categorized Laravel feature tests under `tipon-api/tests/Feature`,
+covering access control, authentication, admin account management, event
+management, registrations, attendance, uploads, notifications, and a smoke test.
+
+```bash
+cd tipon-api
+php artisan test
+```
+
+The current backend suite passes with **112 tests and 434 assertions**. For the
+test folder structure, covered cases, and Laravel testing concepts used, see
+[docs/AUTOMATED_TESTING.md](docs/AUTOMATED_TESTING.md).
 
 ### Frontend (`tipon-web`)
 
@@ -342,7 +359,8 @@ and matches the supervisor's requested structure.
   validation remains the security boundary.
 - Role-based access enforced via middleware on every protected route.
 - Registration capacity checks are transaction-safe under concurrent load
-  (row-level locking).
+  (row-level locking). Organizer event updates also reject reducing capacity
+  below the current number of active registrations.
 - Participant Browse Events search, event registration, event cancellation, and
   notification read actions have normal Laravel form/route fallbacks so the core
   participant flow still works when Livewire JavaScript hydration is unreliable.
@@ -363,4 +381,18 @@ and matches the supervisor's requested structure.
 - Login feedback now separates missing-account and wrong-password failures:
   `AuthController::login()` returns a `404` missing-account message for an
   unregistered email, while an existing email with the wrong password remains a
-  `401 Invalid credentials` response. `AuthLoginTest` covers both branches.
+  `401 Invalid credentials` response. `tests/Feature/Auth/LoginTest.php` covers
+  both branches.
+- Backend automated tests now cover role access boundaries and core workflows:
+  authentication, email verification, admin organizer creation/promotion, event
+  create/update/cancel, duplicate event titles, participant registration capacity
+  and duplicate-registration rules, cancellation ownership, attendance marking,
+  upload validation, notification ownership, completed/past event behavior,
+  event validation, Livewire participant web-route fallbacks, email verification
+  resend behavior, notification payload/order, additional upload edge cases, API
+  response shapes, database constraints, admin validation rules, logout/session
+  behavior, registration edge cases, organizer registrant-list ownership,
+  notification-delivery failure resilience, auth normalization, event update edge
+  cases, already-cancelled registration protection, capacity-reduction blocking,
+  event-cancellation side effects, participant re-registration history display,
+  and individual Livewire notification read ownership.

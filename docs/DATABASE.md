@@ -74,8 +74,8 @@ The store also opportunistically back-fills a lightweight `users` list from
 | `description` | text, nullable | Longer free-text detail, shown on the event detail page. Capped at **1000 characters** (added 2026-07-02) via `max:1000` in `EventController::store`/`update`'s validation — same as `title`, this is application-level only; the DB column type (`text`) has no practical length ceiling of its own. Before this, the field had no length limit at all, which was a real gap (unbounded input is a minor storage/DoS vector, and the UI already truncates with `line-clamp-2` regardless of how long the text is). |
 | `venue` | string | Location, always required. |
 | `event_date` | timestamp | Cast to PHP `datetime` server-side (`Event.php`) for comparisons/formatting. |
-| `capacity` | unsigned integer | Max registrants. Ceiling checked inside the transaction-locked registration flow (FR-17). |
-| `status` | enum: `open` \| `cancelled`, default `open` | Whether registrations are accepted. **No `full` status** — fullness is always derived from live registration count vs. capacity, never stored, so it can't drift out of sync. |
+| `capacity` | unsigned integer | Max registrants. Ceiling checked inside the transaction-locked registration flow (FR-17). Organizer updates cannot reduce this below the current active registration count. |
+| `status` | enum: `open` \| `cancelled` \| `completed`, default `open` | Whether registrations are accepted. `open` events can accept registrations, `cancelled` events preserve cancelled history, and `completed` is applied when an open event is already past its event date. Cancelling an event also changes its active registrations to `cancelled` and notifies the affected active registrants. **No `full` status** — fullness is always derived from live registration count vs. capacity, never stored, so it can't drift out of sync. |
 | `cover_image_path` | string, nullable | Path/URL to an uploaded cover image (`Storage::disk('public')` + `storage:link`). Stores a reference, not a BLOB. The upload itself (added 2026-07-02) is restricted to **JPG/PNG/WEBP, max 2 MB** via `UploadController`'s validation rule — `['image', 'mimes:jpg,jpeg,png,webp', 'max:2048']`. `image` confirms the file is an actually-decodable image (not just a renamed extension); `mimes` narrows the whitelist to exclude SVG (can carry embedded scripts/XXE) and GIF. This column itself never stores or enforces the policy — it's just the resulting path once a valid upload succeeds. **The path also never contains the organizer's original filename** — `Storage::store('covers', 'public')` is called without an explicit target name, so Laravel auto-generates a random hashed one (e.g. `covers/K3sdCdxVjYN2HrDRcoHXrNDWhaIW4VdvxrUmoExG.png`) and the original name the browser sent is discarded entirely. Prevents path traversal via a crafted filename, cross-organizer filename collisions, and leaking whatever the original filename contained. |
 | `created_at` / `updated_at` | timestamp | Standard record-keeping. |
 
@@ -110,7 +110,7 @@ the friendly `422` check already done in `EventController::store()`/`update()`
 | `venue` | `EventItem.venue` | Shown with a map-pin icon. |
 | `event_date` | `EventItem.eventDate` | Formatted via `formatEventDate()`/`formatEventTime()`; drives Upcoming/Past sorting on `MyRegistrations`. |
 | `capacity` | `EventItem.capacity` | Feeds `<CapacityBar>`, `remainingFor()`, `isFull()`. |
-| `status` | `EventItem.status` | `EventStatusBadge`, hides the capacity bar when cancelled, gates registration/edit actions. |
+| `status` | `EventItem.status` | `EventStatusBadge`, hides the capacity bar when cancelled, separates completed events from upcoming open events, and gates registration/edit actions. |
 | `cover_image_path` | `EventItem.cover_image_path` (`""` if null) | `<ImageWithFallback>` on cards/detail; the field the upload pipeline writes into. `EventFormDialog`'s file picker mirrors the backend policy client-side — `accept="image/jpeg,image/png,image/webp"` on the `<input>`, plus a pre-upload check rejecting wrong types/oversized files (>2 MB) instantly with a toast, before ever calling `POST /upload`. As with the password-strength checklist, this is UX only; `UploadController`'s server-side validation is the actual enforcement. |
 | `registered_count` *(API-computed, not a DB column)* | `EventItem.registeredCount` | `confirmedCountFor()` uses it directly if present, else falls back to counting the local `registrations` array — a defensive fallback, not a real schema field. |
 | `created_at` / `updated_at` | *(unused)* | Fetched but dropped by `adaptEvent()`; never shown. |
@@ -176,7 +176,10 @@ duplicate-prevention (FR-16) a database guarantee, not just an app-level check.
 
 Cancelling a registration client-side just flips `status` to `"cancelled"` locally
 (mirrors the backend's soft-cancel) — it stays in the `registrations` array and still
-shows up under the Cancelled tab.
+shows up under the Cancelled tab temporarily. The participant-facing My
+Registrations response shows only the latest recent cancelled row per event,
+hides it after one day, and hides cancelled rows while the participant is
+currently registered again for that same event.
 
 ### Livewire usage
 
