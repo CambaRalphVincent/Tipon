@@ -60,6 +60,9 @@ Tipon/
    organizer accounts follow the same email verification and password policy:
    they sign in with the admin-set password, enter the emailed OTP, and only then
    receive access. Promoted organizers keep their existing verified participant account.
+   Login distinguishes an unregistered email (`404`, with a prompt to create an
+   account) from a wrong password for an existing email (`401 Invalid credentials`),
+   so new users are not left guessing what went wrong.
 2. **Event Management** — organizers create/edit/cancel events (title, description,
    venue, date, capacity, optional cover image). Title is capped at **100
    characters** and description at **1000 characters**, both enforced server-side
@@ -106,7 +109,9 @@ Tipon/
   Plus Jakarta Sans), for contrast against body text. Password fields across
   login and registration got a show/hide toggle. A compact logo now also appears
   on mobile, where the brand panel is hidden — previously mobile visitors saw no
-  branding on this screen at all.
+  branding on this screen at all. The sign-in flow also surfaces the API's
+  missing-account response when an email is not registered, instead of showing
+  the same invalid-credentials message used for wrong passwords.
 - **Dashboards & lists** — the rounded-2xl / hover-lift card language and pill-style
   buttons introduced above were extended to the rest of the authenticated app:
   `AdminDashboard.tsx` (search bar with icon, `CountPill` chips for
@@ -284,6 +289,11 @@ either credential type transparently. See `config/cors.php`, `config/sanctum.php
 and the `SANCTUM_STATEFUL_DOMAINS`/`SESSION_DOMAIN` entries in `.env.example` for
 the supporting config.
 
+`POST /login` returns separate failure states for common credential problems:
+`404` when no account exists for the submitted email, and `401` when the email
+exists but the password is wrong. Unverified accounts still return `403` with
+`requires_verification: true`, which drives the OTP screen.
+
 ### Local development note
 
 Locally, the Livewire pages are reached at **`http://localhost:8000/events`**
@@ -350,3 +360,7 @@ and matches the supervisor's requested structure.
 - `AppShell.tsx`'s sidebar logo/home link now routes by role (admin → `/admin`,
   organizer → `/organizer`, participant → Livewire's `/events`) — previously it
   always linked to the Livewire events page regardless of who was logged in.
+- Login feedback now separates missing-account and wrong-password failures:
+  `AuthController::login()` returns a `404` missing-account message for an
+  unregistered email, while an existing email with the wrong password remains a
+  `401 Invalid credentials` response. `AuthLoginTest` covers both branches.

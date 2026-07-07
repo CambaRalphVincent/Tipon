@@ -107,6 +107,7 @@ Most core features are already working. Current work is focused on UI consistenc
 - Added browser-side thumbnail optimization before event image upload.
 - Added fallback non-Livewire form behavior for participant search, registration, and cancellation flows.
 - Added backend coverage for admin-created organizer OTP verification and promoted participant verification preservation.
+- Added backend coverage for login failures, including unregistered email and wrong-password cases.
 
 ### Recent Progress
 
@@ -141,6 +142,7 @@ Most core features are already working. Current work is focused on UI consistenc
   - Festival Sunset
 - Improved My Registrations card readability by making registration status badges high-contrast over thumbnails.
 - Fixed mojibake text issues in participant-facing Blade views.
+- Improved sign-in feedback so an unregistered email shows a missing-account message instead of the generic invalid-credentials response.
 
 ### Current Development Focus
 
@@ -169,6 +171,7 @@ Most core features are already working. Current work is focused on UI consistenc
 - Password must be at least 8 characters.
 - Password must include mixed case, numbers, and symbols.
 - Login requires valid email and password fields.
+- Login distinguishes missing accounts from wrong passwords: unregistered email returns `404`, while an existing email with the wrong password returns `401`.
 - Email verification requires a valid email and a 6-character code.
 - Verification code must match the stored hashed code.
 - Verification code must not be expired.
@@ -271,11 +274,12 @@ Most core features are already working. Current work is focused on UI consistenc
 - Tested My Registrations card readability with bright event thumbnails.
 - Tested admin-created organizer first-login OTP behavior.
 - Tested that promoted participants keep their verified account state.
+- Tested login response behavior for unregistered emails and wrong passwords.
 
 ### Still Needed
 
 - Expand automated backend tests across the remaining workflows.
-- Expand authentication tests beyond the current organizer OTP/login coverage.
+- Expand authentication tests beyond the current login failure and organizer OTP coverage.
 - Expand email verification tests beyond the current admin-created organizer coverage.
 - Add tests for event creation and update.
 - Add tests for event capacity limits.

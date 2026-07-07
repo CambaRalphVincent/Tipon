@@ -55,20 +55,17 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        // 'web' guard, explicit — once a request has been authenticated via
-        // auth:sanctum, Sanctum's middleware switches Laravel's *default*
-        // guard to 'sanctum' for the rest of the request (via
-        // Auth::shouldUse()), so an unqualified Auth::attempt() would
-        // silently operate on the wrong (stateless) guard.
-        //
-        // once() validates credentials without touching the session at all —
-        // safe to call even when this request has no session store attached
-        // (a bearer-token client, e.g. a future mobile app, won't).
-        if (!Auth::guard('web')->once($data)) {
-            return response()->json(['message' => 'Invalid credentials.'], 401);
+        $user = User::where('email', $data['email'])->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'No account found for that email. Please create an account first.',
+            ], 404);
         }
 
-        $user = Auth::guard('web')->user();
+        if (!Hash::check($data['password'], $user->password)) {
+            return response()->json(['message' => 'Invalid credentials.'], 401);
+        }
 
         if (!$user->email_verified_at) {
             return response()->json([

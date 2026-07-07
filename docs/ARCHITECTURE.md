@@ -136,6 +136,11 @@ The same login flow establishes both when the request supports a browser session
 This allows a participant to log in through the React app and then access
 `http://localhost:8000/events` as a session-authenticated Livewire page.
 
+Login responses separate the main account states so the React auth page can give
+useful feedback: `404` means no account exists for the submitted email, `401`
+means the email exists but the password is wrong, and `403` with
+`requires_verification: true` moves the user to the OTP verification screen.
+
 ## Shared Design System Decisions
 
 React and Livewire do not share components directly, but they share conventions.
