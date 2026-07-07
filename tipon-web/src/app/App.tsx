@@ -1,7 +1,9 @@
 import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { Toaster } from "./components/ui/sonner";
 import { AppShell } from "./components/AppShell";
+import { BrandLogo } from "./components/BrandLogo";
 import { AppStoreProvider, useAppStore } from "./store/AppStore";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { AuthPage } from "./pages/AuthPage";
@@ -35,9 +37,19 @@ function HardRedirect({ to }: { to: string }) {
     window.location.href = target;
   }, [target]);
 
+  return <RouteStatusScreen message="Opening events..." />;
+}
+
+function RouteStatusScreen({ message }: { message: string }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-      <p className="text-sm text-muted-foreground">Redirecting…</p>
+    <div className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center">
+        <BrandLogo layout="stacked" className="[&_svg]:h-20 [&_svg]:w-20" />
+        <div className="flex items-center gap-2 rounded-full border border-primary/15 bg-card px-4 py-2 text-sm text-muted-foreground shadow-sm">
+          <Loader2 className="size-4 animate-spin text-primary" />
+          <span>{message}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -46,11 +58,7 @@ function AppRoutes() {
   const { initialized, currentUser, role } = useAppStore();
 
   if (!initialized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      </div>
-    );
+    return <RouteStatusScreen message="Preparing your workspace..." />;
   }
 
   const loggedIn = !!currentUser;

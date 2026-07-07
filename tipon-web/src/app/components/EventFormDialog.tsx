@@ -263,8 +263,8 @@ export function EventFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="grid max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <DialogHeader className="px-6 pb-2 pt-6">
           <DialogTitle>{isEdit ? "Edit event" : "Create event"}</DialogTitle>
           <DialogDescription>
             {isEdit
@@ -273,7 +273,7 @@ export function EventFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-3 overflow-y-auto px-6 py-3 pb-5">
           {/* Thumbnail uploader */}
           <div className="space-y-2">
             <Label>Thumbnail</Label>
@@ -317,8 +317,8 @@ export function EventFormDialog({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  "flex w-full cursor-pointer flex-col items-center justify-center gap-2",
-                  "rounded-lg border-2 border-dashed border-border bg-muted/30 py-8",
+                  "flex h-32 w-full cursor-pointer flex-col items-center justify-center gap-2",
+                  "rounded-lg border-2 border-dashed border-border bg-muted/30",
                   "text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/50",
                 )}
               >
@@ -383,7 +383,7 @@ export function EventFormDialog({
             <Input id="venue" value={form.venue} onChange={(e) => set("venue", e.target.value)} placeholder="Auditorium A" />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
               <Input id="date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
@@ -405,11 +405,11 @@ export function EventFormDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t bg-background px-6 py-4">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={submit} disabled={!valid}>
             {uploading ? (
-              <><Loader2 className="size-4 animate-spin" /> Uploading…</>
+              <><Loader2 className="size-4 animate-spin" /> Uploading...</>
             ) : isEdit ? "Save changes" : "Create event"}
           </Button>
         </DialogFooter>

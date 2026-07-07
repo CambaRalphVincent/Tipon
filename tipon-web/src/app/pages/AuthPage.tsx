@@ -19,6 +19,7 @@ import { ThemeSwitcher } from "../components/ThemeSwitcher";
 import { BrandLogo } from "../components/BrandLogo";
 import { cn } from "../components/ui/utils";
 import { LIVEWIRE_BASE_URL } from "../lib/api";
+import { PASSWORD_RULES } from "../lib/passwordRules";
 import { useAppStore } from "../store/AppStore";
 import type { UserRole } from "../data/mockData";
 
@@ -27,14 +28,6 @@ import type { UserRole } from "../data/mockData";
 const DISPLAY_FONT = "'Bricolage Grotesque', sans-serif";
 
 const LABEL_CLASS = "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
-
-const PASSWORD_RULES: { label: string; test: (password: string) => boolean }[] = [
-  { label: "At least 8 characters", test: (p) => p.length >= 8 },
-  { label: "An uppercase letter", test: (p) => /[A-Z]/.test(p) },
-  { label: "A lowercase letter", test: (p) => /[a-z]/.test(p) },
-  { label: "A number", test: (p) => /[0-9]/.test(p) },
-  { label: "A special character", test: (p) => /[^A-Za-z0-9]/.test(p) },
-];
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -111,10 +104,12 @@ export function AuthPage() {
           <div className="origin-left scale-90 md:hidden">
             <BrandLogo layout="horizontal" />
           </div>
-          <ThemeSwitcher />
+          <div className="rounded-full border border-primary/10 bg-card/60 p-1 shadow-sm">
+            <ThemeSwitcher />
+          </div>
         </div>
         <div className="flex flex-1 items-center justify-center p-6 pt-0 sm:p-12 sm:pt-0">
-          <div className="w-full max-w-sm">
+          <div className="w-full max-w-md">
             {mode === "login" ? (
               <LoginForm
                 onSignIn={async (email, password) => {
@@ -217,8 +212,8 @@ function LoginForm({
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <div>
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      <div className="space-y-1">
         <h2 className="text-3xl font-bold tracking-tight" style={{ fontFamily: DISPLAY_FONT }}>
           Welcome back
         </h2>
@@ -251,6 +246,16 @@ function LoginForm({
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Signing in…" : "Sign in"}
       </Button>
+
+      <div className="rounded-xl border border-primary/10 bg-foreground/[0.03] px-3.5 py-2.5 text-sm text-muted-foreground">
+        <div className="flex gap-3">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+          <p>
+            Organizer account? Use the password from your administrator, then verify
+            the email code sent to your inbox.
+          </p>
+        </div>
+      </div>
 
       <p className="text-center text-sm text-muted-foreground">
         New to Tipon?{" "}

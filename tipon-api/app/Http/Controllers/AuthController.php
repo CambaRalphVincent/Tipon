@@ -17,6 +17,11 @@ class AuthController extends Controller
     // verifyEmail() before a login token is issued.
     public function register(Request $request): JsonResponse
     {
+        $request->merge([
+            'name'  => trim((string) $request->input('name')),
+            'email' => strtolower(trim((string) $request->input('email'))),
+        ]);
+
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'max:255', 'unique:users'],
@@ -41,6 +46,10 @@ class AuthController extends Controller
     // FR-02 — Authenticate and issue a Sanctum token. Blocked until email is verified.
     public function login(Request $request): JsonResponse
     {
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+        ]);
+
         $data = $request->validate([
             'email'    => ['required', 'email'],
             'password' => ['required'],
@@ -90,6 +99,10 @@ class AuthController extends Controller
     // Confirms a registration/login OTP code and, on success, issues a login token.
     public function verifyEmail(Request $request): JsonResponse
     {
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+        ]);
+
         $data = $request->validate([
             'email' => ['required', 'email'],
             'code'  => ['required', 'string', 'size:6'],
@@ -127,6 +140,10 @@ class AuthController extends Controller
     // Resends a fresh OTP code to an unverified account.
     public function resendVerificationCode(Request $request): JsonResponse
     {
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+        ]);
+
         $data = $request->validate([
             'email' => ['required', 'email'],
         ]);

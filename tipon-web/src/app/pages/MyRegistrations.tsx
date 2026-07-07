@@ -89,13 +89,27 @@ export function MyRegistrations() {
             confirmedCountFor={confirmedCountFor}
             onCancel={cancelRegistration}
             cancellable
+            emptyTitle="No upcoming registrations"
+            emptyDescription="Events you register for will appear here with date, venue, capacity, and cancellation options."
+            showBrowseAction
           />
         </TabsContent>
         <TabsContent value="past" className="mt-4">
-          <RegistrationList items={past} confirmedCountFor={confirmedCountFor} showAttendance />
+          <RegistrationList
+            items={past}
+            confirmedCountFor={confirmedCountFor}
+            showAttendance
+            emptyTitle="No completed events yet"
+            emptyDescription="After you attend an event, it will move here with your attendance status."
+          />
         </TabsContent>
         <TabsContent value="cancelled" className="mt-4">
-          <RegistrationList items={cancelled} confirmedCountFor={confirmedCountFor} />
+          <RegistrationList
+            items={cancelled}
+            confirmedCountFor={confirmedCountFor}
+            emptyTitle="No cancelled registrations"
+            emptyDescription="Cancelled registrations are kept here so you can review your registration history."
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -108,21 +122,36 @@ function RegistrationList({
   onCancel,
   cancellable = false,
   showAttendance = false,
+  emptyTitle = "No registrations yet",
+  emptyDescription = "Browse available events and register for one to start tracking it here.",
+  showBrowseAction = false,
 }: {
   items: RegItem[];
   confirmedCountFor: (eventId: string) => number;
   onCancel?: (eventId: string) => void;
   cancellable?: boolean;
   showAttendance?: boolean;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  showBrowseAction?: boolean;
 }) {
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-20 text-center">
-        <Ticket className="size-9 text-muted-foreground" />
-        <p className="font-medium">Nothing here yet</p>
-        <Button variant="link" className="h-auto p-0" asChild>
-          <a href={`${LIVEWIRE_BASE_URL}/events`}>Browse events</a>
-        </Button>
+      <div className="overflow-hidden rounded-2xl border border-dashed border-primary/20 bg-card">
+        <div className="flex min-h-[18rem] flex-col items-center justify-center px-6 py-14 text-center">
+          <div className="mb-5 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+            <Ticket className="size-7" />
+          </div>
+          <h2 className="text-xl font-bold tracking-tight">{emptyTitle}</h2>
+          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{emptyDescription}</p>
+          {showBrowseAction && (
+            <Button className="mt-6 rounded-xl" asChild>
+              <a href={`${LIVEWIRE_BASE_URL}/events`}>
+                <CalendarDays className="size-4" /> Browse events
+              </a>
+            </Button>
+          )}
+        </div>
       </div>
     );
   }

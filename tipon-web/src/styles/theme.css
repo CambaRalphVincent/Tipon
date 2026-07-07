@@ -211,6 +211,14 @@
 
   html {
     font-size: var(--font-size);
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
   }
 
   h1 {
@@ -253,5 +261,10 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+
+  .dark input[type="date"],
+  .dark input[type="time"] {
+    color-scheme: dark;
   }
 }

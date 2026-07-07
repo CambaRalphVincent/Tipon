@@ -8,7 +8,7 @@ Tipon is an Event Registration System developed as an onboarding activity to tes
 
 ## Current Overall Status
 
-Tipon is currently in **late Phase 3: Development**, with early **Phase 4: Security & Validation** already started and selected **Phase 5: Testing** activities being done manually.
+Tipon is currently in **late Phase 3: Development**, with early **Phase 4: Security & Validation** already started and selected **Phase 5: Testing** activities being done manually and through initial backend feature tests.
 
 Most core features are already working. Current work is focused on UI consistency across the React and Livewire areas, validation, bug fixing, performance refinement, and preparing the system for testing and final documentation.
 
@@ -99,11 +99,14 @@ Most core features are already working. Current work is focused on UI consistenc
 - Implemented attendance tracking.
 - Implemented admin user management.
 - Implemented organizer account creation.
+- Added email OTP verification for admin-created organizer accounts.
+- Shared the same password-strength validation rules between participant registration and admin organizer creation.
 - Implemented participant promotion to organizer.
 - Implemented notification support.
 - Improved UI consistency between Livewire and React pages.
 - Added browser-side thumbnail optimization before event image upload.
 - Added fallback non-Livewire form behavior for participant search, registration, and cancellation flows.
+- Added backend coverage for admin-created organizer OTP verification and promoted participant verification preservation.
 
 ### Recent Progress
 
@@ -112,8 +115,12 @@ Most core features are already working. Current work is focused on UI consistenc
 - Polished registration confirmation dialogs.
 - Fixed blank page issue after event creation.
 - Improved Manage Events table behavior for long titles.
+- Improved admin user management layout and organizer creation validation.
+- Improved admin-created organizer login guidance on the sign-in page.
 - Improved participant event detail layout.
 - Improved My Registrations card button hover states.
+- Improved My Registrations loading and empty-state messaging so tab changes and sign-out do not show misleading copy.
+- Added branded app initialization and redirect loading states.
 - Cleaned up test events to prepare for formal sample data.
 - Reorganized participant Livewire files to match the expected `app/Livewire` and `resources/views/livewire` structure.
 - Updated `/events` and `/events/{event}` so the page flow is now `EventController -> Blade wrapper -> Livewire component`.
@@ -155,8 +162,10 @@ Most core features are already working. Current work is focused on UI consistenc
 
 - Name is required, must be a string, and has a maximum length.
 - Email is required, must be valid, and must be unique.
+- Email addresses are normalized before authentication and account creation.
 - Password is required.
 - Participant password confirmation is required.
+- Admin organizer password confirmation is required.
 - Password must be at least 8 characters.
 - Password must include mixed case, numbers, and symbols.
 - Login requires valid email and password fields.
@@ -233,6 +242,9 @@ Most core features are already working. Current work is focused on UI consistenc
 - Participant registration and cancellation support normal form POST fallbacks.
 - Notification popovers are constrained to prevent overflow on long notification lists.
 - Theme selection persists through local storage and is shared by React and Livewire pages.
+- Participant registration and admin organizer creation use the same frontend password checklist.
+- My Registrations uses tab-specific empty states instead of a generic loading message.
+- App-level loading screens use neutral workspace copy during initialization and redirects.
 
 ## Phase 5: Testing & CI/CD
 
@@ -257,12 +269,14 @@ Most core features are already working. Current work is focused on UI consistenc
 - Tested notification popover overflow behavior on React pages.
 - Tested Browse Events scrolling after thumbnail optimization.
 - Tested My Registrations card readability with bright event thumbnails.
+- Tested admin-created organizer first-login OTP behavior.
+- Tested that promoted participants keep their verified account state.
 
 ### Still Needed
 
-- Add automated backend tests.
-- Add tests for authentication.
-- Add tests for email verification.
+- Expand automated backend tests across the remaining workflows.
+- Expand authentication tests beyond the current organizer OTP/login coverage.
+- Expand email verification tests beyond the current admin-created organizer coverage.
 - Add tests for event creation and update.
 - Add tests for event capacity limits.
 - Add tests for duplicate registration prevention.

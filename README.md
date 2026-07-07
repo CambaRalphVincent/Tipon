@@ -57,8 +57,9 @@ Tipon/
    The account starts unverified and a 6-digit code is emailed via Brevo. Login is
    blocked (`403`) until that code is confirmed via `/email/verify`, which then
    issues the Sanctum token used for all subsequent requests. Admin-created
-   organizer accounts skip email verification — they're verified at creation since
-   they don't self-register — but still go through the same password policy.
+   organizer accounts follow the same email verification and password policy:
+   they sign in with the admin-set password, enter the emailed OTP, and only then
+   receive access. Promoted organizers keep their existing verified participant account.
 2. **Event Management** — organizers create/edit/cancel events (title, description,
    venue, date, capacity, optional cover image). Title is capped at **100
    characters** and description at **1000 characters**, both enforced server-side

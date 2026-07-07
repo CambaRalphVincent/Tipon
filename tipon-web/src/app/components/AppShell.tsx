@@ -134,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 border-r md:block">
         <div className="sticky top-0 h-screen">
@@ -152,8 +152,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-background px-4">
           <Button
             variant="ghost"
             size="icon"
@@ -169,7 +169,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NotificationBell />
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
