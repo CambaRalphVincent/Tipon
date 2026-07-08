@@ -87,6 +87,11 @@ class ValidationTest extends TestCase
         $response
             ->assertUnprocessable()
             ->assertJsonValidationErrors('event_date');
+
+        $this->assertDatabaseMissing('events', [
+            'organizer_id' => $organizer->id,
+            'title' => 'Validated Event',
+        ]);
     }
 
     public function test_event_capacity_must_be_at_least_one(): void

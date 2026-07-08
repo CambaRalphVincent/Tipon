@@ -26,10 +26,12 @@ class EventBrowse extends Component
             ->where('status', Event::STATUS_OPEN)
             ->where('event_date', '>', Event::currentEventDateForStorage())
             ->when($this->query, function ($q) {
-                $q->where(function ($q) {
-                    $q->where('title', 'like', "%{$this->query}%")
-                        ->orWhere('description', 'like', "%{$this->query}%")
-                        ->orWhere('venue', 'like', "%{$this->query}%");
+                $term = '%'.mb_strtolower($this->query).'%';
+
+                $q->where(function ($q) use ($term) {
+                    $q->whereRaw('LOWER(title) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(description) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(venue) LIKE ?', [$term]);
                 });
             })
             ->orderBy('event_date')

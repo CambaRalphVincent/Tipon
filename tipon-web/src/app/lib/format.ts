@@ -17,6 +17,18 @@ export function toEventDateTimePayload(date: string, time: string): string {
   return `${date}T${eventTime.length === 5 ? `${eventTime}:00` : eventTime}`;
 }
 
+export function todayDateInputValue(now = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+export function isEventDateTimeInPast(date: string, time: string, now = new Date()): boolean {
+  if (!date) return false;
+
+  return parseEventDateTime(toEventDateTimePayload(date, time)).getTime() <= now.getTime();
+}
+
 export function toEventDateTimeInputParts(value: string): { date: string; time: string } {
   const parsed = parseEventDateTime(value);
   const pad = (n: number) => String(n).padStart(2, "0");

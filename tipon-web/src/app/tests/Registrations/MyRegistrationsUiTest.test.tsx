@@ -74,11 +74,14 @@ describe("My Registrations UI", () => {
 
     render(React.createElement(MyRegistrations));
 
+    expect(screen.getByRole("tab", { name: "Upcoming Events (1)" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Past Events (1)" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Cancelled (0)" })).toBeInTheDocument();
     expect(screen.getByText("Upcoming Event")).toBeInTheDocument();
     expect(screen.queryByText("Past Event")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Past/ }));
+    await user.click(screen.getByRole("tab", { name: /Past Events/ }));
 
     expect(screen.getByText("Past Event")).toBeInTheDocument();
     expect(screen.queryByText("Upcoming Event")).not.toBeInTheDocument();

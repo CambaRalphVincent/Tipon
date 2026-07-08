@@ -40,6 +40,7 @@ Important backend guarantees:
 
 - Participants cannot register twice for the same active event.
 - Event capacity cannot be exceeded.
+- Organizers cannot create or update events with a past schedule.
 - Registration uses row locking to prevent concurrent overbooking.
 - Organizers can only manage their own events.
 - Admin actions are restricted to admin users.
@@ -60,7 +61,8 @@ It is responsible for:
 - Admin User Management page.
 - Theme switching on React pages.
 - React notification popover.
-- Client-side form feedback and validation hints.
+- Client-side form feedback and validation hints, including duplicate-title and
+  past-schedule warnings for organizer event forms.
 
 React communicates with Laravel through the REST API using `axios`.
 
@@ -117,7 +119,8 @@ Livewire is responsible for:
 - Server-rendered participant event browsing.
 - Event detail display.
 - Participant registration and cancellation through normal form POST fallbacks.
-- Browse Events search using the `q` query parameter.
+- Browse Events case-insensitive title, description, and venue search using the
+  `q` query parameter.
 - Participant notification display and read actions.
 - Matching the React app's sidebar, theme switcher, notification popover, and card
   styling conventions.

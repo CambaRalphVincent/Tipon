@@ -25,7 +25,7 @@ Run the backend suite from this folder:
 php artisan test
 ```
 
-Current result: **114 tests passed, 440 assertions**.
+Current result: **116 tests passed, 450 assertions**.
 
 For the full backend test structure, covered cases, and commands, see
 [`../docs/AUTOMATED_TESTING.md`](../docs/AUTOMATED_TESTING.md).

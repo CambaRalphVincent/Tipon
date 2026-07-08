@@ -234,7 +234,7 @@ These check:
 - Organizers cannot edit or cancel completed events.
 - Required event fields are validated.
 - Long titles, descriptions, and venues are rejected.
-- Past event dates are rejected.
+- Past event dates are rejected and do not create event rows.
 - Capacity must be at least 1.
 - Invalid update statuses are rejected.
 - Cancelled event titles can be reused.
@@ -252,7 +252,8 @@ Checks participant browser-session routes:
 - Participant can view the Livewire Browse Events page.
 - Participant can view the Livewire Event Detail page.
 - Organizer and admin cannot access participant Livewire pages.
-- `GET /events?q=...` filters event results.
+- `GET /events?q=...` filters event results by title and venue.
+- Browse Events search is case-insensitive for title and venue queries.
 - Participant can register through `POST /events/{event}/register`.
 - Participant can cancel through `POST /events/{event}/cancel-registration`.
 - Participant can mark all Livewire notifications as read.
@@ -481,7 +482,7 @@ Storage::fake('public');
 The current backend test suite passes:
 
 ```text
-114 passed, 440 assertions
+116 passed, 450 assertions
 ```
 
 Command used:
@@ -507,11 +508,12 @@ frontend display, routing, store/API behavior, and component interaction logic:
 - Registrant List loading, active registrant display, cancelled-registration
   exclusion, participant details, present/absent attendance marking, and empty
   state rendering.
-- Organizer event form duplicate warnings, edit prefill behavior, and thumbnail
-  file-type validation.
+- Organizer event form duplicate warnings, edit prefill behavior, past-schedule
+  blocking, and thumbnail file-type validation.
 - My Registrations tab categorization, active-tab rendering, cancelled-history
   cleanup rules, cancellation controls, and image loading behavior.
-- Attendance badge rendering, contrast classes, and Past-tab attendance display.
+- Attendance badge rendering, contrast classes, and Past Events-tab attendance
+  display.
 - AppStore registration and event state behavior, including re-registering after
   cancelled history, cancellation count updates, failed registration toasts,
   create/update/cancel event state updates, and logout state clearing.
@@ -579,7 +581,7 @@ npm run test
 React/Vitest behavior and avoids loading the Tailwind Vite native plugin during
 unit tests.
 
-The current frontend suite passes with **25 test files and 88 tests**.
+The current frontend suite passes with **25 test files and 90 tests**.
 
 Frontend lint and production build also pass:
 

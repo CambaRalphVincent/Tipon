@@ -64,10 +64,13 @@ Tipon/
    account) from a wrong password for an existing email (`401 Invalid credentials`),
    so new users are not left guessing what went wrong.
 2. **Event Management** — organizers create/edit/cancel events (title, description,
-   venue, date, capacity, optional cover image). Title is capped at **100
-   characters** and description at **1000 characters**, both enforced server-side
-   and mirrored in the UI with `maxLength` inputs and live `X/limit` counters. An
-   organizer cannot have two active (`open`)
+   venue, future date/time, capacity, optional cover image). Title is capped at
+   **100 characters** and description at **1000 characters**, both enforced
+   server-side and mirrored in the UI with `maxLength` inputs and live `X/limit`
+   counters. Event schedules must be after the current time, enforced server-side
+   by `EventController::store()`/`update()` and mirrored in the organizer form
+   with a minimum date plus a past-schedule warning. An organizer cannot have two
+   active (`open`)
    events with the same title (case-insensitive) — enforced both server-side (a
    partial unique DB index, same pattern as duplicate-registration prevention) and
    live in the UI as the title is typed. Cancelling an event frees its title for
@@ -204,7 +207,7 @@ cd tipon-api
 php artisan test
 ```
 
-The current backend suite passes with **114 tests and 440 assertions**. For the
+The current backend suite passes with **116 tests and 450 assertions**. For the
 test folder structure, covered cases, and Laravel testing concepts used, see
 [docs/AUTOMATED_TESTING.md](docs/AUTOMATED_TESTING.md).
 
@@ -230,7 +233,7 @@ npm run build
 Frontend tests are categorized under `tipon-web/src/app/tests` for
 AccessControl, Admin, Attendance, Auth, Components, Events, Notifications,
 Organizer, Registrations, and Store. The current frontend suite passes with
-**25 test files and 88 tests**.
+**25 test files and 90 tests**.
 
 ## API Overview
 
@@ -289,9 +292,10 @@ state in Livewire classes under `app/Livewire`.
 
 ### Livewire behavior
 
-- Browse Events reads events directly from Eloquent and supports server-rendered
-  search through `GET /events?q=...`, so search still works even if Livewire
-  JavaScript does not hydrate.
+- Browse Events reads events directly from Eloquent and supports server-rendered,
+  case-insensitive search across title, description, and venue through
+  `GET /events?q=...`, so search still works even if Livewire JavaScript does
+  not hydrate.
 - Event Detail uses standard form POST fallbacks for registration and cancellation:
   `POST /events/{event}/register` and
   `POST /events/{event}/cancel-registration`.
@@ -370,13 +374,18 @@ and matches the supervisor's requested structure.
 - The React event form optimizes selected thumbnails into a smaller WebP version
   before upload when doing so reduces the file size. The server-side upload
   validation remains the security boundary.
+- Organizer event creation and editing reject past schedules server-side with
+  Laravel's `after:now` validation on `event_date`; the React form mirrors this
+  with a minimum date and disables submit when the chosen date/time is already in
+  the past. The server-side rule is the security boundary.
 - Role-based access enforced via middleware on every protected route.
 - Registration capacity checks are transaction-safe under concurrent load
   (row-level locking). Organizer event updates also reject reducing capacity
   below the current number of active registrations.
-- Participant Browse Events search, event registration, event cancellation, and
-  notification read actions have normal Laravel form/route fallbacks so the core
-  participant flow still works when Livewire JavaScript hydration is unreliable.
+- Participant Browse Events search is case-insensitive across title, description,
+  and venue. Search, event registration, event cancellation, and notification
+  read actions have normal Laravel form/route fallbacks so the core participant
+  flow still works when Livewire JavaScript hydration is unreliable.
 - Responsive UI targeting Chrome, Firefox, and Edge.
 - `EventController::store()`/`update()` now reload and return `registered_count`
   on the created/updated event (previously omitted, so the frontend received an

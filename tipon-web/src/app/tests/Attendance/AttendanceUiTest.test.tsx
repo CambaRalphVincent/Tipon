@@ -50,7 +50,7 @@ describe("Attendance UI", () => {
     store.confirmedCountFor.mockReturnValue(1);
   });
 
-  it("shows attendance badges in the Past tab", async () => {
+  it("shows attendance badges in the Past Events tab", async () => {
     const user = userEvent.setup();
     const events = [
       event({ id: "present-event", title: "Present Event" }),
@@ -65,7 +65,7 @@ describe("Attendance UI", () => {
     store.eventById.mockImplementation((id: string) => events.find((item) => item.id === id));
 
     render(React.createElement(MyRegistrations));
-    await user.click(screen.getByRole("tab", { name: /Past/ }));
+    await user.click(screen.getByRole("tab", { name: /Past Events/ }));
 
     expect(screen.getByText("Present")).toBeInTheDocument();
     expect(screen.getByText("Absent")).toBeInTheDocument();

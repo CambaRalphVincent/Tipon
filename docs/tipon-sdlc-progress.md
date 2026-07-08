@@ -95,6 +95,8 @@ Most core features are already working. Current work is focused on UI consistenc
 - Implemented organizer dashboard.
 - Implemented Manage Events page.
 - Implemented event creation, update, and cancellation.
+- Added organizer event form validation that blocks past event schedules before
+  submit, while keeping the backend `after:now` rule as the enforcement boundary.
 - Implemented event thumbnail upload.
 - Implemented attendance tracking.
 - Implemented admin user management.
@@ -206,6 +208,8 @@ Most core features are already working. Current work is focused on UI consistenc
 - Event date is required.
 - Event date must be a valid date.
 - Event date must be after the current time.
+- Organizer create/edit forms mirror this rule with a minimum date, a
+  past-schedule warning, and disabled submit for already-past date/time values.
 - Capacity is required.
 - Capacity must be an integer.
 - Capacity must be at least 1.
@@ -264,7 +268,8 @@ Most core features are already working. Current work is focused on UI consistenc
 - Image upload is limited to 2 MB.
 - Submit is disabled while image upload is still running.
 - Event thumbnails are optimized to a smaller WebP version before upload when possible.
-- Participant event search supports a server-rendered fallback through query parameters.
+- Participant event search supports a server-rendered, case-insensitive fallback
+  through query parameters for title, description, and venue matching.
 - Participant registration and cancellation support normal form POST fallbacks.
 - Notification popovers are constrained to prevent overflow on long notification lists.
 - Theme selection persists through local storage and is shared by React and Livewire pages.
@@ -289,6 +294,7 @@ Most core features are already working. Current work is focused on UI consistenc
 - Tested UI behavior with long event titles.
 - Tested role-based navigation behavior.
 - Tested Browse Events search behavior after adding the query parameter fallback.
+- Tested Browse Events venue search and mixed-case title/venue search.
 - Tested participant event registration after replacing broken Livewire-only actions with form fallbacks.
 - Tested notification read behavior for individual notifications and mark-all-read.
 - Tested theme switching across React and Livewire pages.
@@ -334,11 +340,14 @@ Current automated coverage includes:
 - Role-based access control across participant, organizer, admin, and shared API routes.
 - Organizer event create, update, cancel, ownership checks, duplicate-title prevention, duplicate-title blocking during update, status cancellation through update, blocked capacity reduction below active registrations, and event-cancellation side effects.
 - Event schedule handling, including preserving Philippines-local event times and converting legacy UTC-style payloads back to Philippines-local time.
-- Event validation, including required title, title/description/venue length limits, future dates, minimum capacity, invalid update status rejection, and title reuse after cancellation.
+- Event validation, including required title, title/description/venue length limits, future dates that do not create rejected event rows, minimum capacity, invalid update status rejection, and title reuse after cancellation.
 - Completed/past event behavior, including automatic completion, blocked late registration, blocked late cancellation, and blocked organizer edits/cancellations.
 - Participant event registration, capacity blocking, duplicate-registration prevention, cancellation ownership, already-cancelled cancellation blocking, cancelled-event blocking, re-registration after cancellation, cancelled registrations not counting toward capacity, cancelled registration history, hiding superseded cancelled history when the participant is currently registered again for the same event, showing only the latest recent cancellation per event, and hiding cancelled entries after one day.
 - Organizer registrant-list behavior, including active-only event registrant lists, user details, same-role ownership protection, organizer-only event scoping, and cancelled registration history.
-- Livewire participant Browse Events and Event Detail pages, search fallback, form-based registration/cancellation, notification read-all behavior, individual notification read behavior, and notification ownership.
+- Livewire participant Browse Events and Event Detail pages, case-insensitive
+  title/venue search fallback, form-based registration/cancellation,
+  notification read-all behavior, individual notification read behavior, and
+  notification ownership.
 - Attendance marking and attendance validation.
 - Cover image upload access, file validation, size validation, accepted/rejected file types, and generated storage filenames.
 - Notification listing, read state, ownership protection, payload content, cancellation notifications, newest-first ordering, and notification-delivery failure resilience.
@@ -346,7 +355,7 @@ Current automated coverage includes:
 Current passing result:
 
 ```text
-114 tests passed, 440 assertions
+116 tests passed, 450 assertions
 ```
 
 The testing guide is documented in `docs/AUTOMATED_TESTING.md`.
@@ -365,12 +374,12 @@ Components, Events, Notifications, Organizer, Registrations, and Store behavior.
 Current frontend coverage includes admin user management, organizer dashboard
 totals, manage-events filtering/actions, registrant lists, AppStore state changes,
 shared component states, auth, route access, notifications, event browsing, event
-forms, attendance badges, and My Registrations.
+forms including past-schedule blocking, attendance badges, and My Registrations.
 
 Current passing frontend result:
 
 ```text
-25 test files passed, 88 tests passed
+25 test files passed, 90 tests passed
 ```
 
 ### Still Needed

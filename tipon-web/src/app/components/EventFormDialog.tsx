@@ -19,7 +19,12 @@ import { cn } from "./ui/utils";
 import { useAppStore } from "../store/AppStore";
 import type { EventItem } from "../data/mockData";
 import { hasDuplicateOpenEventTitleForOrganizer } from "../lib/eventFilters";
-import { toEventDateTimeInputParts, toEventDateTimePayload } from "../lib/format";
+import {
+  isEventDateTimeInPast,
+  todayDateInputValue,
+  toEventDateTimeInputParts,
+  toEventDateTimePayload,
+} from "../lib/format";
 
 interface FormState {
   title: string;
@@ -235,6 +240,7 @@ export function EventFormDialog({
     form.title,
     event?.id,
   );
+  const isPastSchedule = isEventDateTimeInPast(form.date, form.time);
 
   const valid =
     form.title.trim() &&
@@ -242,7 +248,8 @@ export function EventFormDialog({
     form.date &&
     form.capacity > 0 &&
     !uploading &&
-    !isDuplicateTitle;
+    !isDuplicateTitle &&
+    !isPastSchedule;
 
   const submit = () => {
     if (!valid) return;
@@ -387,7 +394,13 @@ export function EventFormDialog({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
+              <Input
+                id="date"
+                type="date"
+                min={todayDateInputValue()}
+                value={form.date}
+                onChange={(e) => set("date", e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="time">Time</Label>
@@ -404,6 +417,11 @@ export function EventFormDialog({
               />
             </div>
           </div>
+          {isPastSchedule && (
+            <p className="text-xs text-red-500">
+              Choose a future date and time. Events cannot be scheduled in the past.
+            </p>
+          )}
         </div>
 
         <DialogFooter className="border-t bg-background px-6 py-4">

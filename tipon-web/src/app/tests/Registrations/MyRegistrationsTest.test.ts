@@ -52,8 +52,8 @@ describe("getRegistrationTabSummary", () => {
   it("returns tab-specific summary text", () => {
     const counts = { upcoming: 3, past: 1, cancelled: 0 };
 
-    expect(getRegistrationTabSummary("upcoming", counts)).toBe("Showing 3 upcoming registrations.");
-    expect(getRegistrationTabSummary("past", counts)).toBe("Showing 1 completed registration.");
+    expect(getRegistrationTabSummary("upcoming", counts)).toBe("Showing 3 upcoming events.");
+    expect(getRegistrationTabSummary("past", counts)).toBe("Showing 1 past event.");
     expect(getRegistrationTabSummary("cancelled", counts)).toBe("Showing 0 recent cancellations.");
   });
 });

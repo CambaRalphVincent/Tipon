@@ -66,6 +66,27 @@ describe("EventFormDialog UI", () => {
     expect(screen.getByLabelText("Capacity")).toHaveValue(25);
   });
 
+  it("blocks creating an event scheduled in the past", async () => {
+    const user = userEvent.setup();
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const formatDateInput = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+    render(React.createElement(EventFormDialog, { trigger: React.createElement("button", null, "New event") }));
+    await user.click(screen.getByRole("button", { name: "New event" }));
+    await user.type(screen.getByLabelText("Title"), "Past Schedule");
+    await user.type(screen.getByLabelText("Venue"), "Main Hall");
+    fireEvent.change(screen.getByLabelText("Date"), {
+      target: { value: formatDateInput(yesterday) },
+    });
+
+    expect(screen.getByLabelText("Date")).toHaveAttribute("min", formatDateInput(today));
+    expect(screen.getByText(/events cannot be scheduled in the past/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create event" })).toBeDisabled();
+  });
+
   it("rejects invalid thumbnail file types", async () => {
     const user = userEvent.setup();
 

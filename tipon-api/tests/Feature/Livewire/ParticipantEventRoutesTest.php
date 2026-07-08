@@ -62,6 +62,44 @@ class ParticipantEventRoutesTest extends TestCase
             ->assertDontSee('Art History Forum');
     }
 
+    public function test_livewire_browse_search_query_filters_events_by_venue(): void
+    {
+        $participant = User::factory()->create(['role' => 'participant']);
+
+        $this->createEvent(title: 'Cybersecurity Bootcamp', venue: 'Lab 1');
+        $this->createEvent(title: 'Art History Forum', venue: 'Gallery Hall');
+
+        $this->actingAs($participant);
+
+        $response = $this->get('/events?q=gallery');
+
+        $response
+            ->assertOk()
+            ->assertSee('Art History Forum')
+            ->assertDontSee('Cybersecurity Bootcamp');
+    }
+
+    public function test_livewire_browse_search_query_is_case_insensitive_for_title_and_venue(): void
+    {
+        $participant = User::factory()->create(['role' => 'participant']);
+
+        $this->createEvent(title: 'Cybersecurity Bootcamp', venue: 'Lab 1');
+        $this->createEvent(title: 'Art History Forum', venue: 'Gallery Hall');
+        $this->createEvent(title: 'Robotics Demo Day', venue: 'Innovation Center');
+
+        $this->actingAs($participant);
+
+        $this->get('/events?q=CYBERSECURITY')
+            ->assertOk()
+            ->assertSee('Cybersecurity Bootcamp')
+            ->assertDontSee('Art History Forum');
+
+        $this->get('/events?q=gallery HALL')
+            ->assertOk()
+            ->assertSee('Art History Forum')
+            ->assertDontSee('Robotics Demo Day');
+    }
+
     public function test_participant_can_register_through_livewire_form_route(): void
     {
         $participant = User::factory()->create(['role' => 'participant']);

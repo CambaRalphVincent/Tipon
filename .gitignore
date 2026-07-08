@@ -21,3 +21,6 @@ mockup/
 # Project documents (share via Google Drive instead)
 *.pdf
 *.png
+
+# Local AI workflow references
+ai_assisted_programmer_playbook.md

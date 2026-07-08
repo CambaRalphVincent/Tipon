@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { EventItem } from "../../data/mockData";
 import { hasDuplicateOpenEventTitleForOrganizer } from "../../lib/eventFilters";
-import { toEventDateTimeInputParts, toEventDateTimePayload } from "../../lib/format";
+import {
+  isEventDateTimeInPast,
+  todayDateInputValue,
+  toEventDateTimeInputParts,
+  toEventDateTimePayload,
+} from "../../lib/format";
 
 const event = (overrides: Partial<EventItem>): EventItem => ({
   id: "event-default",
@@ -44,5 +49,14 @@ describe("organizer event management", () => {
       date: "2026-07-08",
       time: "15:45",
     });
+  });
+
+  it("detects past event schedules for organizer validation", () => {
+    const now = new Date("2026-07-08T10:00:00");
+
+    expect(todayDateInputValue(now)).toBe("2026-07-08");
+    expect(isEventDateTimeInPast("2026-07-07", "23:59", now)).toBe(true);
+    expect(isEventDateTimeInPast("2026-07-08", "09:59", now)).toBe(true);
+    expect(isEventDateTimeInPast("2026-07-08", "10:01", now)).toBe(false);
   });
 });

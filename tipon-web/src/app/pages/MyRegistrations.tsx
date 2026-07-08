@@ -73,10 +73,10 @@ export function MyRegistrations() {
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as RegistrationTab)}>
         <TabsList className="h-auto flex-wrap gap-1 bg-foreground/[0.03] p-1">
           <TabsTrigger value="upcoming" className="rounded-lg px-3 py-1.5">
-            Upcoming ({upcoming.length})
+            Upcoming Events ({upcoming.length})
           </TabsTrigger>
           <TabsTrigger value="past" className="rounded-lg px-3 py-1.5">
-            Past ({past.length})
+            Past Events ({past.length})
           </TabsTrigger>
           <TabsTrigger value="cancelled" className="rounded-lg px-3 py-1.5">
             Cancelled ({cancelled.length})
@@ -87,7 +87,7 @@ export function MyRegistrations() {
           <div className="mt-4 space-y-1 text-xs text-muted-foreground">
             <p>
               {tabSummary}{" "}
-              <span className="font-semibold text-foreground">{totalActive}</span> active upcoming.
+              <span className="font-semibold text-foreground">{totalActive}</span> active upcoming events.
             </p>
             {activeTab === "cancelled" && (
               <p>
@@ -104,7 +104,7 @@ export function MyRegistrations() {
               confirmedCountFor={confirmedCountFor}
               onCancel={cancelRegistration}
               cancellable
-              emptyTitle="No upcoming registrations"
+              emptyTitle="No upcoming events"
               emptyDescription="Events you register for will appear here with date, venue, capacity, and cancellation options."
               showBrowseAction
             />

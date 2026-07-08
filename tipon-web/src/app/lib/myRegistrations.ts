@@ -52,11 +52,11 @@ export function getRegistrationTabSummary(
   counts: Record<RegistrationTab, number>,
 ): string {
   if (activeTab === "upcoming") {
-    return `Showing ${counts.upcoming} upcoming registration${counts.upcoming === 1 ? "" : "s"}.`;
+    return `Showing ${counts.upcoming} upcoming event${counts.upcoming === 1 ? "" : "s"}.`;
   }
 
   if (activeTab === "past") {
-    return `Showing ${counts.past} completed registration${counts.past === 1 ? "" : "s"}.`;
+    return `Showing ${counts.past} past event${counts.past === 1 ? "" : "s"}.`;
   }
 
   return `Showing ${counts.cancelled} recent cancellation${counts.cancelled === 1 ? "" : "s"}.`;
