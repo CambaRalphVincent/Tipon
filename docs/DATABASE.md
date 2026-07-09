@@ -231,7 +231,7 @@ Laravel's `Notifiable` trait on the `User` model.
 | `data.status` | fallback driver for participant notification type | `registered` becomes `registration_confirmed`; `cancelled` becomes `event_cancelled`. |
 | `data.title` | `AppNotification.title` when present | Lets backend organizer notifications provide exact titles such as `Event is full` or `Attendance needs review`. |
 | `data.message` | `AppNotification.body` | The notification's descriptive text. |
-| `data.action_url` | `AppNotification.actionUrl` | Click destination. Organizer and admin URLs route through React Router, for example `/organizer/events/{id}`, `/admin`, or `/admin/events`. Participant event URLs hard-navigate to the Livewire event pages. |
+| `data.action_url` | `AppNotification.actionUrl` | Click destination. Organizer and admin URLs route through React Router, for example `/organizer/events/{id}`, `/admin`, `/admin/events`, or `/admin/events?event={id}` for an admin event drawer. Participant event URLs hard-navigate to the Livewire event pages. |
 | `data.event_id`, `data.event_title` | payload context | Used to build notification text and action destinations. |
 | `read_at` | `AppNotification.readAt` | Drives the unread badge count, the unread dot, row highlighting; clicking marks it read (optimistic update + `PUT /notifications/{id}/read`). |
 | `created_at` | `AppNotification.createdAt` | Sorts notifications newest-first; renders relative time ("2h ago"). |

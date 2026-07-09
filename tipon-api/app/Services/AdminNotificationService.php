@@ -32,7 +32,7 @@ class AdminNotificationService
                 'Event cancelled',
                 "{$event->title} was cancelled by {$event->organizer?->name}. {$affectedCount} registered participant".
                     ($affectedCount === 1 ? ' was' : 's were').' affected.',
-                '/admin/events',
+                "/admin/events?event={$event->id}",
                 [
                     'event_id' => $event->id,
                     'event_title' => $event->title,
@@ -55,7 +55,7 @@ class AdminNotificationService
                 'admin_event_created',
                 'New event created',
                 "{$event->organizer?->name} created {$event->title}.",
-                '/admin/events',
+                "/admin/events?event={$event->id}",
                 [
                     'event_id' => $event->id,
                     'event_title' => $event->title,

@@ -133,6 +133,35 @@ describe("AdminEventMonitor UI", () => {
     });
   });
 
+  it("opens a matching event drawer from the event query parameter", async () => {
+    eventsApi.all.mockResolvedValue({
+      data: [
+        event({
+          id: 7,
+          title: "Admin Planning Session",
+          description: "A planning review for campus event operations.",
+          venue: "Strategy Room",
+          capacity: 20,
+          registered_count: 8,
+          organizer: { id: 44, name: "Dean Santos" },
+        }),
+        event({
+          id: 8,
+          title: "Operations Briefing",
+          venue: "Conference Hall",
+          organizer: { id: 45, name: "Ms. Cruz" },
+        }),
+      ],
+    });
+
+    renderWithRouter(React.createElement(AdminEventMonitor), ["/admin/events?event=7"]);
+
+    const drawer = await screen.findByRole("dialog", { name: "Admin Planning Session" });
+    expect(within(drawer).getByText("Strategy Room")).toBeInTheDocument();
+    expect(within(drawer).getByText("Dean Santos")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Operations Briefing" })).not.toBeInTheDocument();
+  });
+
   it("shows an error toast when events cannot load", async () => {
     eventsApi.all.mockRejectedValue(new Error("failed"));
 

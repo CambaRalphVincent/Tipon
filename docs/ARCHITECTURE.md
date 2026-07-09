@@ -60,7 +60,8 @@ It is responsible for:
 - Event creation and edit dialogs.
 - Attendance management UI.
 - Admin User Management page.
-- Admin Event Monitoring page with a row-opened event details drawer.
+- Admin Event Monitoring page with a row-opened event details drawer and event
+  notification deep links.
 - Theme switching on React pages.
 - React notification popover.
 - Client-side form feedback and validation hints, including duplicate-title and
@@ -165,7 +166,7 @@ Shared conventions include:
   - mark-all-read action
   - status-based titles such as `Registration confirmed`
   - notification action links route users to the relevant event, registrant list,
-    organizer event inventory, or admin monitoring page
+    organizer event inventory, or admin monitoring drawer
   - organizer notifications for registration activity, capacity milestones,
     upcoming-event reminders, attendance reminders, and event-cancellation summaries
   - admin notifications for new organizer-created events, unverified organizer

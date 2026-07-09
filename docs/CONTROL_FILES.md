@@ -161,6 +161,8 @@ This file uses React Router and defines the client-side SPA routes:
 - `/organizer/events/:id`
 - `/admin`
 - `/admin/events`
+- `/admin/events?event={id}` opens the admin event details drawer for the
+  matching event when reached from an admin notification
 - fallback route `*`
 
 Participant `/events` pages are not handled by React Router. They are served by

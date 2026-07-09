@@ -10,6 +10,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
@@ -48,11 +49,13 @@ const FILTERS: Array<{ label: string; value: StatusFilter }> = [
 ];
 
 export function AdminEventMonitor() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedEvent, setSelectedEvent] = useState<ApiEvent | null>(null);
+  const selectedEventId = searchParams.get("event");
 
   useEffect(() => {
     eventsApi
@@ -61,6 +64,13 @@ export function AdminEventMonitor() {
       .catch(() => toast.error("Failed to load events."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (loading || !selectedEventId) return;
+
+    const eventFromUrl = events.find((event) => String(event.id) === selectedEventId);
+    if (eventFromUrl) setSelectedEvent(eventFromUrl);
+  }, [events, loading, selectedEventId]);
 
   const visibleEvents = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -247,7 +257,15 @@ export function AdminEventMonitor() {
       <AdminEventDetailsDrawer
         event={selectedEvent}
         onOpenChange={(open) => {
-          if (!open) setSelectedEvent(null);
+          if (open) return;
+
+          setSelectedEvent(null);
+
+          if (searchParams.has("event")) {
+            const nextSearchParams = new URLSearchParams(searchParams);
+            nextSearchParams.delete("event");
+            setSearchParams(nextSearchParams, { replace: true });
+          }
         }}
       />
     </div>

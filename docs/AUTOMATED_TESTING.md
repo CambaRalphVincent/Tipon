@@ -508,7 +508,8 @@ frontend display, routing, store/API behavior, and component interaction logic:
 - Admin user loading, loading/error states, search filtering, participant and
   organizer counts, participant promotion, organizer creation validation, email
   normalization, table updates after organizer creation, and event monitoring
-  status/search filtering plus event details drawer behavior.
+  status/search filtering plus event details drawer behavior, including event
+  notification deep links.
 - Browse Events filtering, searching, sorting, registered/full badges, and
   duplicate title checks.
 - Organizer Dashboard ownership filtering, dashboard totals, attendance-rate
@@ -593,7 +594,7 @@ npm run test
 React/Vitest behavior and avoids loading the Tailwind Vite native plugin during
 unit tests.
 
-The current frontend suite passes with **26 test files and 98 tests**.
+The current frontend suite passes with **26 test files and 100 tests**.
 
 Frontend lint and production build also pass:
 

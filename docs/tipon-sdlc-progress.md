@@ -166,6 +166,8 @@ Most core features are already working. Current work is focused on UI consistenc
 - Added admin notifications for new organizer-created events, unverified
   organizer reminders, and cancellation summaries when an event cancellation
   affects active registrants.
+- Linked admin event notifications directly to the matching Event Monitoring
+  details drawer.
 - Matched the Livewire theme switcher visually and behaviorally with the React theme switcher.
 - Standardized the theme storage key across React and Livewire as `tipon-theme`.
 - Added the same theme options across both stacks:
@@ -389,15 +391,16 @@ The React frontend now includes categorized Vitest and React Testing Library tes
 under `tipon-web/src/app/tests`, covering AccessControl, Admin, Attendance, Auth,
 Components, Events, Notifications, Organizer, Registrations, and Store behavior.
 Current frontend coverage includes admin user management, admin event monitoring
-and event details drawer behavior, organizer dashboard totals, manage-events filtering/actions,
-registrant lists, AppStore state changes, shared component states, auth, route
-access, notifications including action navigation, event browsing, event
-forms including past-schedule blocking, attendance badges, and My Registrations.
+and event details drawer behavior including notification deep links, organizer
+dashboard totals, manage-events filtering/actions, registrant lists, AppStore
+state changes, shared component states, auth, route access, notifications
+including action navigation, event browsing, event forms including past-schedule
+blocking, attendance badges, and My Registrations.
 
 Current passing frontend result:
 
 ```text
-26 test files passed, 98 tests passed
+26 test files passed, 100 tests passed
 ```
 
 ### Still Needed

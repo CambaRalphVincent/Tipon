@@ -79,6 +79,22 @@ export function adaptRegistration(r: ApiRegistration): Registration {
   };
 }
 
+function notificationActionUrl(n: ApiNotification): string | undefined {
+  const actionUrl = n.data?.action_url;
+  const kind = n.data?.kind;
+  const eventId = n.data?.event_id;
+
+  if (
+    eventId &&
+    (kind === "admin_event_created" || kind === "admin_event_cancellation_summary") &&
+    (!actionUrl || actionUrl === "/admin/events")
+  ) {
+    return `/admin/events?event=${eventId}`;
+  }
+
+  return actionUrl;
+}
+
 function adaptNotification(n: ApiNotification): AppNotification {
   const status = n.data?.status;
   const isOrganizerNotification = n.data?.audience === "organizer";
@@ -99,7 +115,7 @@ function adaptNotification(n: ApiNotification): AppNotification {
     body: n.data?.message ?? "",
     createdAt: n.created_at,
     readAt: n.read_at,
-    actionUrl: n.data?.action_url,
+    actionUrl: notificationActionUrl(n),
   };
 }
 

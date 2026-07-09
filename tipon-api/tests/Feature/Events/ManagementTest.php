@@ -45,7 +45,7 @@ class ManagementTest extends TestCase
         $this->assertSame('admin_event_created', $adminNotification->data['kind']);
         $this->assertSame('Campus Tech Summit', $adminNotification->data['event_title']);
         $this->assertSame($organizer->id, $adminNotification->data['organizer_id']);
-        $this->assertSame('/admin/events', $adminNotification->data['action_url']);
+        $this->assertSame("/admin/events?event={$response->json('id')}", $adminNotification->data['action_url']);
     }
 
     public function test_event_date_preserves_philippines_local_time_when_created(): void
@@ -326,7 +326,7 @@ class ManagementTest extends TestCase
         $adminSummary = $admin->fresh()->notifications()->firstOrFail();
         $this->assertSame('admin_event_cancellation_summary', $adminSummary->data['kind']);
         $this->assertSame(2, $adminSummary->data['affected_count']);
-        $this->assertSame('/admin/events', $adminSummary->data['action_url']);
+        $this->assertSame("/admin/events?event={$event->id}", $adminSummary->data['action_url']);
     }
 
     public function test_organizer_cannot_create_duplicate_open_event_title_case_insensitively(): void

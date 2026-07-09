@@ -92,11 +92,12 @@ Tipon/
    capacity usage, and attendance rate per event; participants and organizers receive
    in-app notifications on registration/event changes. Notification rows can open
    their related destination, such as a Livewire event page, organizer registrant
-   list, or organizer event inventory. Organizer notifications also cover capacity
-   milestones, full events, upcoming-event reminders, pending-attendance reminders,
-   and event-cancellation summaries. Admins can monitor all platform events and
-   receive notifications for new organizer-created events, unverified organizer
-   accounts, and cancelled events that affected registered participants.
+   list, organizer event inventory, or an admin event details drawer. Organizer
+   notifications also cover capacity milestones, full events, upcoming-event
+   reminders, pending-attendance reminders, and event-cancellation summaries.
+   Admins can monitor all platform events and receive notifications for new
+   organizer-created events, unverified organizer accounts, and cancelled events
+   that affected registered participants.
 
 ## Design
 
@@ -241,7 +242,7 @@ npm run build
 Frontend tests are categorized under `tipon-web/src/app/tests` for
 AccessControl, Admin, Attendance, Auth, Components, Events, Notifications,
 Organizer, Registrations, and Store. The current frontend suite passes with
-**26 test files and 98 tests**.
+**26 test files and 100 tests**.
 
 ## API Overview
 
@@ -315,8 +316,9 @@ state in Livewire classes under `app/Livewire`.
   `tipon-theme` localStorage key and the same three options:
   `Bayanihan Gold`, `Tropical Teal`, and `Festival Sunset`.
 - Notifications use Laravel database notifications. Clicking one notification
-  marks it as read and may open the related event destination; `Mark all read`
-  clears the unread count.
+  marks it as read and may open the related event destination, including admin
+  event notifications that open the matching Event Monitoring drawer; `Mark all
+  read` clears the unread count.
 - Event thumbnails are rendered with explicit image dimensions and lazy loading
   rules to reduce browse-page scrolling lag.
 

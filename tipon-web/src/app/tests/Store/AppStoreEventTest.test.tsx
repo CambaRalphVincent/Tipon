@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppStoreProvider, useAppStore } from "../../store/AppStore";
-import type { ApiEvent, ApiRegistration, ApiUser } from "../../lib/api";
+import type { ApiEvent, ApiNotification, ApiRegistration, ApiUser } from "../../lib/api";
 
 const authApi = vi.hoisted(() => ({
   me: vi.fn(),
@@ -110,32 +110,34 @@ const EventStoreHarness = () => {
   );
 };
 
-const bootstrap = async () => {
+const defaultNotifications = (): ApiNotification[] => [
+  {
+    id: "n1",
+    type: "organizer_registration",
+    notifiable_type: "App\\\\User",
+    notifiable_id: 101,
+    data: {
+      event_id: 1,
+      event_title: "Original",
+      status: "registered",
+      audience: "organizer",
+      kind: "participant_registered",
+      action_url: "/organizer/events/1",
+      participant_id: 301,
+      participant_name: "Participant One",
+      message: "Participant One registered for Original.",
+    },
+    read_at: null,
+    created_at: "2026-01-01T08:00:00.000Z",
+    updated_at: "2026-01-01T08:00:00.000Z",
+  },
+];
+
+const bootstrap = async (notifications: ApiNotification[] = defaultNotifications()) => {
   authApi.me.mockResolvedValue({ data: apiUser("organizer") });
   eventsApi.all.mockResolvedValue({ data: [makeEvent({ title: "Original", id: 1 })] });
   notificationsApi.all.mockResolvedValue({
-    data: [
-      {
-        id: "n1",
-        type: "organizer_registration",
-        notifiable_type: "App\\\\User",
-        notifiable_id: 101,
-        data: {
-          event_id: 1,
-          event_title: "Original",
-          status: "registered",
-          audience: "organizer",
-          kind: "participant_registered",
-          action_url: "/organizer/events/1",
-          participant_id: 301,
-          participant_name: "Participant One",
-          message: "Participant One registered for Original.",
-        },
-        read_at: null,
-        created_at: "2026-01-01T08:00:00.000Z",
-        updated_at: "2026-01-01T08:00:00.000Z",
-      },
-    ],
+    data: notifications,
   });
   registrationsApi.myRegistrations.mockResolvedValue({ data: [] });
   registrationsApi.organizerRegistrations.mockResolvedValue({ data: [] as ApiRegistration[] });
@@ -212,6 +214,35 @@ describe("AppStore event behavior", () => {
     expect(notifications[0].body).toBe("Participant One registered for Original.");
     expect(notifications[0].userId).toBe("101");
     expect(notifications[0].actionUrl).toBe("/organizer/events/1");
+  });
+
+  it("adapts legacy admin event notification urls to drawer deep links", async () => {
+    await bootstrap([
+      {
+        id: "n-admin",
+        type: "admin_event_cancellation_summary",
+        notifiable_type: "App\\\\User",
+        notifiable_id: 101,
+        data: {
+          audience: "admin",
+          kind: "admin_event_cancellation_summary",
+          title: "Event cancelled",
+          event_id: 42,
+          event_title: "Legacy Event",
+          action_url: "/admin/events",
+          affected_count: 4,
+          message: "Legacy Event was cancelled.",
+        },
+        read_at: null,
+        created_at: "2026-01-01T08:00:00.000Z",
+        updated_at: "2026-01-01T08:00:00.000Z",
+      },
+    ]);
+
+    const notifications = parseState("notifications");
+
+    expect(notifications[0].type).toBe("admin_event_cancellation_summary");
+    expect(notifications[0].actionUrl).toBe("/admin/events?event=42");
   });
 
   it("clears user, events, registrations, and notifications on logout", async () => {

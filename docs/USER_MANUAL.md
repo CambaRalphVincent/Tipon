@@ -438,7 +438,8 @@ To review events:
 
 The details drawer shows the selected event's venue, organizer, schedule, status,
 capacity usage, registered count, remaining slots, fill rate, event ID, and
-description when available.
+description when available. Admin event notifications can also open this drawer
+directly for the related event.
 
 ### 9.3 Search Users
 
@@ -484,7 +485,8 @@ events.
 ### 9.6 Admin Notifications
 
 Admin notifications appear from the bell icon in the top-right area. Click a
-notification to mark it as read and open the related admin page.
+notification to mark it as read and open the related admin page. Event-related
+admin notifications open the matching Event Monitoring details drawer.
 
 Admins may receive notifications when:
 
