@@ -241,7 +241,7 @@ npm run build
 Frontend tests are categorized under `tipon-web/src/app/tests` for
 AccessControl, Admin, Attendance, Auth, Components, Events, Notifications,
 Organizer, Registrations, and Store. The current frontend suite passes with
-**26 test files and 97 tests**.
+**26 test files and 98 tests**.
 
 ## API Overview
 

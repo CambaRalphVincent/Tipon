@@ -1,5 +1,5 @@
 import React from "react";
-import { screen } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -87,15 +87,50 @@ describe("AdminEventMonitor UI", () => {
 
     expect(await screen.findByText("Open Forum")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Cancelled/ }));
+    await user.click(screen.getByRole("button", { name: "Cancelled events (1)" }));
     expect(screen.queryByText("Open Forum")).not.toBeInTheDocument();
     expect(screen.getByText("Cancelled Workshop")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /All/ }));
+    await user.click(screen.getByRole("button", { name: "All events (2)" }));
     await user.type(screen.getByPlaceholderText("Search events, venues, organizers..."), "auditorium");
 
     expect(screen.getByText("Open Forum")).toBeInTheDocument();
     expect(screen.queryByText("Cancelled Workshop")).not.toBeInTheDocument();
+  });
+
+  it("opens and closes a details drawer from an event row", async () => {
+    const user = userEvent.setup();
+    eventsApi.all.mockResolvedValue({
+      data: [
+        event({
+          id: 7,
+          title: "Admin Planning Session",
+          description: "A planning review for campus event operations.",
+          venue: "Strategy Room",
+          capacity: 20,
+          registered_count: 8,
+          organizer: { id: 44, name: "Dean Santos" },
+        }),
+      ],
+    });
+
+    renderWithRouter(React.createElement(AdminEventMonitor));
+
+    await user.click(await screen.findByRole("button", { name: "View details for Admin Planning Session" }));
+
+    const drawer = await screen.findByRole("dialog", { name: "Admin Planning Session" });
+    expect(within(drawer).getByText("Strategy Room")).toBeInTheDocument();
+    expect(within(drawer).getByText("Dean Santos")).toBeInTheDocument();
+    expect(within(drawer).getByText("8 / 20 registered")).toBeInTheDocument();
+    expect(within(drawer).getByText("12")).toBeInTheDocument();
+    expect(within(drawer).getByText("40%")).toBeInTheDocument();
+    expect(within(drawer).getByText("A planning review for campus event operations.")).toBeInTheDocument();
+
+    await user.click(within(drawer).getByRole("button", { name: "Close" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Admin Planning Session" })).not.toBeInTheDocument();
+    });
   });
 
   it("shows an error toast when events cannot load", async () => {

@@ -427,12 +427,18 @@ This page shows:
 - Schedule
 - Capacity usage
 - Event status
+- A details drawer for a selected event
 
 To review events:
 
 1. Click `Event Monitoring` in the sidebar.
 2. Use the status filters to show `All`, `Open`, `Completed`, or `Cancelled` events.
 3. Type an event title, venue, or organizer name in the search box to narrow the table.
+4. Click an event row to open its details drawer.
+
+The details drawer shows the selected event's venue, organizer, schedule, status,
+capacity usage, registered count, remaining slots, fill rate, event ID, and
+description when available.
 
 ### 9.3 Search Users
 

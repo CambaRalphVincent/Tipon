@@ -60,7 +60,7 @@ It is responsible for:
 - Event creation and edit dialogs.
 - Attendance management UI.
 - Admin User Management page.
-- Admin Event Monitoring page.
+- Admin Event Monitoring page with a row-opened event details drawer.
 - Theme switching on React pages.
 - React notification popover.
 - Client-side form feedback and validation hints, including duplicate-title and

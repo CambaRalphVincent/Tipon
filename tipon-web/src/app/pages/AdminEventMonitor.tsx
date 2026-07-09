@@ -1,5 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ListChecks, Search, ShieldAlert, Users } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  CalendarDays,
+  Clock,
+  ListChecks,
+  MapPin,
+  Search,
+  ShieldAlert,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
@@ -13,6 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../components/ui/sheet";
 import { CapacityBar } from "../components/CapacityBar";
 import { EventStatusBadge } from "../components/StatusBadge";
 import { StatCard } from "../components/StatCard";
@@ -35,6 +52,7 @@ export function AdminEventMonitor() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [selectedEvent, setSelectedEvent] = useState<ApiEvent | null>(null);
 
   useEffect(() => {
     eventsApi
@@ -111,6 +129,7 @@ export function AdminEventMonitor() {
                 type="button"
                 variant="ghost"
                 size="sm"
+                aria-label={`${filter.label} events (${filterCounts[filter.value]})`}
                 className={cn(
                   "h-8 flex-1 rounded-md px-3 text-xs sm:flex-none",
                   statusFilter === filter.value && "bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary",
@@ -163,7 +182,20 @@ export function AdminEventMonitor() {
               visibleEvents.map((event) => {
                 const filled = event.registered_count ?? 0;
                 return (
-                  <TableRow key={event.id} className="hover:bg-accent/30">
+                  <TableRow
+                    key={event.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View details for ${event.title}`}
+                    className="cursor-pointer hover:bg-accent/30 focus-visible:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => setSelectedEvent(event)}
+                    onKeyDown={(keyboardEvent) => {
+                      if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
+                        keyboardEvent.preventDefault();
+                        setSelectedEvent(event);
+                      }
+                    }}
+                  >
                     <TableCell className="min-w-0 px-3 py-2.5 pr-6">
                       <div className="max-w-full truncate font-medium leading-snug" title={event.title}>
                         {event.title}
@@ -211,6 +243,137 @@ export function AdminEventMonitor() {
           </CardContent>
         )}
       </Card>
+
+      <AdminEventDetailsDrawer
+        event={selectedEvent}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEvent(null);
+        }}
+      />
+    </div>
+  );
+}
+
+function AdminEventDetailsDrawer({
+  event,
+  onOpenChange,
+}: {
+  event: ApiEvent | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const filled = event?.registered_count ?? 0;
+  const capacity = event?.capacity ?? 0;
+  const remaining = Math.max(0, capacity - filled);
+  const fillPercent = capacity > 0 ? Math.min(100, Math.round((filled / capacity) * 100)) : 0;
+
+  return (
+    <Sheet open={!!event} onOpenChange={onOpenChange}>
+      {event && (
+        <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-lg">
+          <SheetHeader className="border-b px-5 py-4">
+            <div className="flex items-start justify-between gap-4 pr-8">
+              <div className="min-w-0">
+                <SheetTitle className="truncate text-xl" title={event.title}>
+                  {event.title}
+                </SheetTitle>
+                <SheetDescription>
+                  Admin event details and capacity summary.
+                </SheetDescription>
+              </div>
+              <EventStatusBadge status={event.status} />
+            </div>
+          </SheetHeader>
+
+          <div className="space-y-5 px-5 py-4">
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold">Event Overview</h3>
+              <div className="grid gap-3">
+                <DetailRow icon={MapPin} label="Venue" value={event.venue} />
+                <DetailRow icon={UserRound} label="Organizer" value={event.organizer?.name ?? "Unknown"} />
+                <DetailRow
+                  icon={Clock}
+                  label="Schedule"
+                  value={`${formatEventDate(event.event_date)} at ${formatEventTime(event.event_date)}`}
+                />
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold">Capacity</h3>
+              <div className="rounded-lg border bg-muted/15 p-3">
+                <CapacityBar filled={filled} capacity={capacity} />
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  <Metric label="Registered" value={filled} />
+                  <Metric label="Capacity" value={capacity} />
+                  <Metric label="Remaining" value={remaining} />
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold">Operational Snapshot</h3>
+              <div className="grid gap-2 rounded-lg border bg-muted/15 p-3 text-sm">
+                <SnapshotRow label="Fill rate" value={`${fillPercent}%`} />
+                <SnapshotRow label="Status" value={<EventStatusBadge status={event.status} />} />
+                <SnapshotRow label="Event ID" value={`#${event.id}`} />
+              </div>
+            </section>
+
+            {event.description && (
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold">Description</h3>
+                <p className="rounded-lg border bg-muted/15 p-3 text-sm leading-relaxed text-muted-foreground">
+                  {event.description}
+                </p>
+              </section>
+            )}
+          </div>
+        </SheetContent>
+      )}
+    </Sheet>
+  );
+}
+
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border bg-muted/15 p-3">
+      <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
+      <div className="min-w-0">
+        <p className="text-xs uppercase tracking-normal text-muted-foreground">{label}</p>
+        <p className="break-words text-sm font-medium">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md bg-background/40 px-2 py-2">
+      <p className="text-lg font-semibold leading-tight">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function SnapshotRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value}</span>
     </div>
   );
 }

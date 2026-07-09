@@ -101,6 +101,7 @@ Most core features are already working. Current work is focused on UI consistenc
 - Implemented attendance tracking.
 - Implemented admin user management.
 - Implemented admin event monitoring.
+- Added a details drawer for admin event monitoring rows.
 - Implemented organizer account creation.
 - Added email OTP verification for admin-created organizer accounts.
 - Shared the same password-strength validation rules between participant registration and admin organizer creation.
@@ -387,8 +388,8 @@ npm run build
 The React frontend now includes categorized Vitest and React Testing Library tests
 under `tipon-web/src/app/tests`, covering AccessControl, Admin, Attendance, Auth,
 Components, Events, Notifications, Organizer, Registrations, and Store behavior.
-Current frontend coverage includes admin user management, organizer dashboard
-and event monitoring, organizer dashboard totals, manage-events filtering/actions,
+Current frontend coverage includes admin user management, admin event monitoring
+and event details drawer behavior, organizer dashboard totals, manage-events filtering/actions,
 registrant lists, AppStore state changes, shared component states, auth, route
 access, notifications including action navigation, event browsing, event
 forms including past-schedule blocking, attendance badges, and My Registrations.
@@ -396,7 +397,7 @@ forms including past-schedule blocking, attendance badges, and My Registrations.
 Current passing frontend result:
 
 ```text
-26 test files passed, 97 tests passed
+26 test files passed, 98 tests passed
 ```
 
 ### Still Needed
