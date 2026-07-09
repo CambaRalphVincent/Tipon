@@ -7,7 +7,9 @@ documentation changes in this repository, read and follow:
 
 Treat that Markdown playbook as required project guidance for all Tipon work.
 
-When it comes to adding, committing and pushing the Github. Let the user write the commands himself in the terminal.
-Just help the user with the commands.
-Since the user's goal is to master Git Commands.
-Add brief and concise explanation to the Git Commands, what it does and why is that command important.
+When adding, committing, or pushing to GitHub, let the user type the commands in
+the terminal. Provide the exact commands and guidance, but do not run them unless
+the user explicitly asks.
+
+Because the user's goal is to master Git commands, include a brief explanation of
+what each Git command does and why it matters.
