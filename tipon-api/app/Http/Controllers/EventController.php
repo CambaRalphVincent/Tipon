@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Notifications\RegistrationStatusNotification;
+use App\Services\OrganizerNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -150,6 +151,12 @@ class EventController extends Controller
             } catch (Throwable) {
                 // Notification delivery must not undo a successful event cancellation.
             }
+        }
+
+        try {
+            app(OrganizerNotificationService::class)->notifyCancellationSummary($event, $registrationsToNotify->count());
+        } catch (Throwable) {
+            // Summary notification should not undo a successful event cancellation.
         }
 
         return response()->json(['message' => 'Event cancelled.']);

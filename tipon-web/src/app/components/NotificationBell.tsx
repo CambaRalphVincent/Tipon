@@ -1,15 +1,24 @@
-import { Bell, BellRing, CalendarClock, CheckCircle2, Info, XCircle } from "lucide-react";
+import { Bell, BellRing, CalendarClock, CheckCircle2, Info, Users, XCircle } from "lucide-react";
+import { useNavigate } from "react-router";
 import { Button } from "./ui/button";
 import { TriggerButton } from "./TriggerButton";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "./ui/utils";
 import { formatRelative } from "../lib/format";
 import { getNotificationsForUser, getUnreadNotificationCount } from "../lib/notifications";
+import { LIVEWIRE_BASE_URL } from "../lib/api";
 import { useAppStore } from "../store/AppStore";
 import type { AppNotification, NotificationType } from "../data/mockData";
 
 const ICONS: Record<NotificationType, typeof Info> = {
   registration_confirmed: CheckCircle2,
+  participant_registered: CheckCircle2,
+  participant_cancelled: XCircle,
+  capacity_threshold: Users,
+  event_full: Users,
+  upcoming_event_reminder: CalendarClock,
+  attendance_reminder: CheckCircle2,
+  event_cancellation_summary: XCircle,
   event_updated: Info,
   event_cancelled: XCircle,
   event_reminder: CalendarClock,
@@ -17,17 +26,39 @@ const ICONS: Record<NotificationType, typeof Info> = {
 
 const ICON_COLOR: Record<NotificationType, string> = {
   registration_confirmed: "text-emerald-400",
+  participant_registered: "text-emerald-400",
+  participant_cancelled: "text-red-400",
+  capacity_threshold: "text-amber-400",
+  event_full: "text-emerald-400",
+  upcoming_event_reminder: "text-amber-400",
+  attendance_reminder: "text-sky-400",
+  event_cancellation_summary: "text-red-400",
   event_updated: "text-sky-400",
   event_cancelled: "text-red-400",
   event_reminder: "text-amber-400",
 };
 
 export function NotificationBell() {
+  const navigate = useNavigate();
   const { currentUser, notifications, markNotificationRead, markAllNotificationsRead } =
     useAppStore();
 
   const mine: AppNotification[] = getNotificationsForUser(notifications, currentUser?.id);
   const unread = getUnreadNotificationCount(mine);
+  const handleNotificationClick = (notification: AppNotification) => {
+    markNotificationRead(notification.id);
+
+    if (!notification.actionUrl) {
+      return;
+    }
+
+    if (notification.actionUrl.startsWith("/events")) {
+      window.location.href = `${LIVEWIRE_BASE_URL}${notification.actionUrl}`;
+      return;
+    }
+
+    navigate(notification.actionUrl);
+  };
 
   return (
     <Popover>
@@ -62,7 +93,7 @@ export function NotificationBell() {
                 return (
                   <li key={n.id}>
                     <button
-                      onClick={() => markNotificationRead(n.id)}
+                      onClick={() => handleNotificationClick(n)}
                       className={cn(
                         "flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-accent",
                         !n.readAt && "bg-accent/40",

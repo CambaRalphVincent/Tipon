@@ -117,10 +117,20 @@ const bootstrap = async () => {
     data: [
       {
         id: "n1",
-        type: "event_cancelled",
+        type: "organizer_registration",
         notifiable_type: "App\\\\User",
         notifiable_id: 101,
-        data: { event_id: 1, event_title: "Original", status: "open", message: "original" },
+        data: {
+          event_id: 1,
+          event_title: "Original",
+          status: "registered",
+          audience: "organizer",
+          kind: "participant_registered",
+          action_url: "/organizer/events/1",
+          participant_id: 301,
+          participant_name: "Participant One",
+          message: "Participant One registered for Original.",
+        },
         read_at: null,
         created_at: "2026-01-01T08:00:00.000Z",
         updated_at: "2026-01-01T08:00:00.000Z",
@@ -190,6 +200,18 @@ describe("AppStore event behavior", () => {
     screen.getByRole("button", { name: "cancel-event" }).click();
 
     await waitFor(() => expect(parseState("events")[0].status).toBe("cancelled"));
+  });
+
+  it("adapts organizer registration notifications for the bell", async () => {
+    await bootstrap();
+
+    const notifications = parseState("notifications");
+
+    expect(notifications[0].type).toBe("participant_registered");
+    expect(notifications[0].title).toBe("New registration");
+    expect(notifications[0].body).toBe("Participant One registered for Original.");
+    expect(notifications[0].userId).toBe("101");
+    expect(notifications[0].actionUrl).toBe("/organizer/events/1");
   });
 
   it("clears user, events, registrations, and notifications on logout", async () => {

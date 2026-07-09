@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\Registration;
+use App\Notifications\OrganizerRegistrationNotification;
 use App\Notifications\RegistrationStatusNotification;
+use App\Services\OrganizerNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -61,7 +63,10 @@ class RegistrationController extends Controller
         }
 
         try {
+            $event->loadMissing('organizer');
             $request->user()->notify(new RegistrationStatusNotification($event, 'registered'));
+            $event->organizer?->notify(new OrganizerRegistrationNotification($event, $request->user(), 'registered'));
+            app(OrganizerNotificationService::class)->notifyRegistrationMilestones($event);
         } catch (Throwable) {
             // Registration succeeded; notification should not block the user flow.
         }
@@ -89,7 +94,9 @@ class RegistrationController extends Controller
         $registration->update(['status' => 'cancelled']);
 
         try {
+            $event->loadMissing('organizer');
             $request->user()->notify(new RegistrationStatusNotification($event, 'cancelled'));
+            $event->organizer?->notify(new OrganizerRegistrationNotification($event, $request->user(), 'cancelled'));
         } catch (Throwable) {
             // Cancellation succeeded; notification should not block the user flow.
         }
@@ -212,7 +219,10 @@ class RegistrationController extends Controller
 
         // FR-11 — Notify participant of successful registration.
         try {
+            $event->loadMissing('organizer');
             $request->user()->notify(new RegistrationStatusNotification($event, 'registered'));
+            $event->organizer?->notify(new OrganizerRegistrationNotification($event, $request->user(), 'registered'));
+            app(OrganizerNotificationService::class)->notifyRegistrationMilestones($event);
         } catch (Throwable) {
             // Notification delivery must not undo a successful registration.
         }
@@ -242,7 +252,11 @@ class RegistrationController extends Controller
 
         // FR-11 — Notify participant of cancellation.
         try {
+            $registration->event->loadMissing('organizer');
             $request->user()->notify(new RegistrationStatusNotification($registration->event, 'cancelled'));
+            $registration->event->organizer?->notify(
+                new OrganizerRegistrationNotification($registration->event, $request->user(), 'cancelled'),
+            );
         } catch (Throwable) {
             // Notification delivery must not undo a successful cancellation.
         }

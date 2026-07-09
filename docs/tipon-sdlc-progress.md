@@ -156,6 +156,11 @@ Most core features are already working. Current work is focused on UI consistenc
   - Mark all read remains available.
   - Notification rows now follow the React convention with status-based titles and success/cancel icons.
 - Fixed notification popover overflow on React pages.
+- Added navigable notification rows that mark notifications read and route to
+  the related event, organizer registrant list, or organizer event inventory.
+- Expanded organizer notifications for participant registrations, participant
+  cancellations, 90% capacity milestones, full events, upcoming-event reminders,
+  attendance reminders, and event-cancellation summaries.
 - Matched the Livewire theme switcher visually and behaviorally with the React theme switcher.
 - Standardized the theme storage key across React and Livewire as `tipon-theme`.
 - Added the same theme options across both stacks:
@@ -350,12 +355,16 @@ Current automated coverage includes:
   notification ownership.
 - Attendance marking and attendance validation.
 - Cover image upload access, file validation, size validation, accepted/rejected file types, and generated storage filenames.
-- Notification listing, read state, ownership protection, payload content, cancellation notifications, newest-first ordering, and notification-delivery failure resilience.
+- Notification listing, read state, ownership protection, payload content,
+  cancellation notifications, organizer registration/cancellation notifications,
+  organizer capacity milestones, organizer upcoming-event and attendance
+  reminders, organizer event-cancellation summaries, newest-first ordering, and
+  notification-delivery failure resilience.
 
 Current passing result:
 
 ```text
-116 tests passed, 450 assertions
+122 tests passed, 494 assertions
 ```
 
 The testing guide is documented in `docs/AUTOMATED_TESTING.md`.
@@ -373,13 +382,14 @@ under `tipon-web/src/app/tests`, covering AccessControl, Admin, Attendance, Auth
 Components, Events, Notifications, Organizer, Registrations, and Store behavior.
 Current frontend coverage includes admin user management, organizer dashboard
 totals, manage-events filtering/actions, registrant lists, AppStore state changes,
-shared component states, auth, route access, notifications, event browsing, event
+shared component states, auth, route access, notifications including action
+navigation, event browsing, event
 forms including past-schedule blocking, attendance badges, and My Registrations.
 
 Current passing frontend result:
 
 ```text
-25 test files passed, 90 tests passed
+25 test files passed, 93 tests passed
 ```
 
 ### Still Needed

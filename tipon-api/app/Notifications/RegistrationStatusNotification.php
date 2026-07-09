@@ -27,6 +27,7 @@ class RegistrationStatusNotification extends Notification
             'event_id'    => $this->event->id,
             'event_title' => $this->event->title,
             'status'      => $this->status,
+            'action_url'  => "/events/{$this->event->id}",
             'message'     => $message,
         ];
     }

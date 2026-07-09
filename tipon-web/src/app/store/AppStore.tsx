@@ -80,15 +80,26 @@ export function adaptRegistration(r: ApiRegistration): Registration {
 }
 
 function adaptNotification(n: ApiNotification): AppNotification {
-  const isRegistered = n.data?.status === "registered";
+  const status = n.data?.status;
+  const isOrganizerNotification = n.data?.audience === "organizer";
+  const type: NotificationType = n.data?.kind
+    ?? (isOrganizerNotification
+      ? (status === "registered" ? "participant_registered" : "participant_cancelled")
+      : (status === "registered" ? "registration_confirmed" : "event_cancelled"));
+  const title = n.data?.title
+    ?? (isOrganizerNotification
+      ? (status === "registered" ? "New registration" : "Registration cancelled")
+      : (status === "registered" ? "Registration confirmed" : "Registration cancelled"));
+
   return {
     id: n.id,
-    type: (isRegistered ? "registration_confirmed" : "event_cancelled") as NotificationType,
+    type,
     userId: String(n.notifiable_id),
-    title: isRegistered ? "Registration confirmed" : "Registration cancelled",
+    title,
     body: n.data?.message ?? "",
     createdAt: n.created_at,
     readAt: n.read_at,
+    actionUrl: n.data?.action_url,
   };
 }
 

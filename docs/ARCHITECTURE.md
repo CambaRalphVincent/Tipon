@@ -162,6 +162,10 @@ Shared conventions include:
   - individual notification click marks it as read
   - mark-all-read action
   - status-based titles such as `Registration confirmed`
+  - notification action links route users to the relevant event, registrant list,
+    or organizer event inventory
+  - organizer notifications for registration activity, capacity milestones,
+    upcoming-event reminders, attendance reminders, and event-cancellation summaries
 - Similar event cards, badges, capacity bars, and empty states.
 
 ## Why Responsibilities Are Split This Way

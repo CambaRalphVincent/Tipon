@@ -309,6 +309,11 @@ class ManagementTest extends TestCase
         $this->assertSame(1, $anotherActiveParticipant->fresh()->notifications()->count());
         $this->assertSame(0, $alreadyCancelledParticipant->fresh()->notifications()->count());
         $this->assertSame('cancelled', $activeParticipant->fresh()->notifications()->firstOrFail()->data['status']);
+
+        $summary = $organizer->fresh()->notifications()->firstOrFail();
+        $this->assertSame('event_cancellation_summary', $summary->data['kind']);
+        $this->assertSame(2, $summary->data['affected_count']);
+        $this->assertSame('/organizer/events', $summary->data['action_url']);
     }
 
     public function test_organizer_cannot_create_duplicate_open_event_title_case_insensitively(): void

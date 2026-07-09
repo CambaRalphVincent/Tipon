@@ -118,7 +118,7 @@ class ParticipantEventRoutesTest extends TestCase
             'user_id' => $participant->id,
             'status' => 'registered',
         ]);
-        $this->assertDatabaseCount('notifications', 1);
+        $this->assertDatabaseCount('notifications', 2);
     }
 
     public function test_participant_can_cancel_through_livewire_form_route(): void
@@ -143,7 +143,7 @@ class ParticipantEventRoutesTest extends TestCase
             'id' => $registration->id,
             'status' => 'cancelled',
         ]);
-        $this->assertDatabaseCount('notifications', 1);
+        $this->assertDatabaseCount('notifications', 2);
     }
 
     public function test_participant_can_mark_all_livewire_notifications_as_read(): void

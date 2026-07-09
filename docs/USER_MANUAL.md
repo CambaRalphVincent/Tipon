@@ -232,7 +232,8 @@ To view notifications:
 
 1. Click the bell icon in the top-right area.
 2. Read the notification list.
-3. Click a notification to mark it as read.
+3. Click a notification to mark it as read and, when available, open the
+   related event page.
 4. If available, click `Mark all read` to clear all unread notifications.
 
 ## 8. Organizer Guide
@@ -323,6 +324,7 @@ When an event is cancelled:
 - The event status changes to Cancelled.
 - Active registrations are cancelled.
 - Affected participants are notified.
+- The organizer receives a cancellation summary notification.
 - The event title becomes available for reuse.
 
 ### 8.5 Filter Events
@@ -376,6 +378,22 @@ Attendance statuses:
 | Pending | Attendance has not been recorded yet |
 | Present | Participant attended |
 | Absent | Participant did not attend |
+
+### 8.9 Organizer Notifications
+
+Organizer notifications appear from the bell icon in the top-right area. Click a
+notification to mark it as read and open the related event, registrant list, or
+event inventory page.
+
+Organizers may receive notifications when:
+
+- A participant registers for one of their events.
+- A participant cancels their registration.
+- An event reaches 90% capacity.
+- An event becomes full.
+- An open event starts within 24 hours.
+- A completed event still has pending attendance records.
+- An event cancellation summary is available after cancelling an event.
 
 ## 9. Admin Guide
 

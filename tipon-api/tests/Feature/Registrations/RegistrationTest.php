@@ -35,7 +35,7 @@ class RegistrationTest extends TestCase
             'attendance' => 'pending',
         ]);
 
-        $this->assertDatabaseCount('notifications', 1);
+        $this->assertDatabaseCount('notifications', 2);
     }
 
     public function test_organizer_cannot_register_as_participant(): void

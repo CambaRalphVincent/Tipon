@@ -7,6 +7,13 @@ export type RegistrationStatus = "registered" | "cancelled";
 export type AttendanceStatus = "pending" | "present" | "absent";
 export type NotificationType =
   | "registration_confirmed"
+  | "participant_registered"
+  | "participant_cancelled"
+  | "capacity_threshold"
+  | "event_full"
+  | "upcoming_event_reminder"
+  | "attendance_reminder"
+  | "event_cancellation_summary"
   | "event_updated"
   | "event_cancelled"
   | "event_reminder";
@@ -49,6 +56,7 @@ export interface AppNotification {
   body: string;
   readAt: string | null;
   createdAt: string;
+  actionUrl?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -245,6 +253,7 @@ export const notifications: AppNotification[] = [
     body: "You're registered for \"Introduction to Machine Learning\" on " + new Date(daysFromNow(7)).toLocaleDateString() + ".",
     readAt: null,
     createdAt: daysFromNow(-2),
+    actionUrl: "/events/ev-1",
   },
   {
     id: "nt-2",
@@ -254,6 +263,7 @@ export const notifications: AppNotification[] = [
     body: "\"Research Methods Seminar\" is in 5 days. See you at Library Seminar Room 2.",
     readAt: null,
     createdAt: daysFromNow(-1),
+    actionUrl: "/events/ev-5",
   },
   {
     id: "nt-3",
@@ -263,5 +273,36 @@ export const notifications: AppNotification[] = [
     body: "The venue for \"Introduction to Machine Learning\" is now Engineering Auditorium A.",
     readAt: daysFromNow(-1),
     createdAt: daysFromNow(-1),
+    actionUrl: "/events/ev-1",
+  },
+  {
+    id: "nt-org-1",
+    type: "participant_registered",
+    userId: "u-org-1",
+    title: "New registration",
+    body: "Aisha Tan registered for \"Introduction to Machine Learning\".",
+    readAt: null,
+    createdAt: daysFromNow(-1),
+    actionUrl: "/organizer/events/ev-1",
+  },
+  {
+    id: "nt-org-2",
+    type: "participant_cancelled",
+    userId: "u-org-1",
+    title: "Registration cancelled",
+    body: "Liam Ortega cancelled their registration for \"Data Visualization Workshop\".",
+    readAt: daysFromNow(-1),
+    createdAt: daysFromNow(-1),
+    actionUrl: "/organizer/events/ev-2",
+  },
+  {
+    id: "nt-org-3",
+    type: "event_full",
+    userId: "u-org-1",
+    title: "Event is full",
+    body: "\"Data Visualization Workshop\" is now full with 30 of 30 slots taken.",
+    readAt: null,
+    createdAt: daysFromNow(-1),
+    actionUrl: "/organizer/events/ev-2",
   },
 ];

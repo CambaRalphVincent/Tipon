@@ -215,6 +215,7 @@ Checks organizer event management:
 - Organizer cannot update another organizer's event.
 - Organizer can cancel their own event.
 - Event cancellation cancels active registrations and notifies active registrants.
+- Event cancellation creates an organizer cancellation summary notification.
 - Duplicate open event titles are rejected case-insensitively.
 - Event creation preserves Philippines-local event time values.
 - Legacy UTC-style event date payloads are converted back to Philippines-local time.
@@ -343,6 +344,11 @@ Checks notification ownership:
 
 - User can list their own notifications.
 - User can mark their own notification as read.
+- Organizer receives notifications when participants register or cancel.
+- Organizer receives one 90% capacity-threshold notification.
+- Organizer receives one event-full notification.
+- Organizer notification listing creates one upcoming-event reminder when an open event starts within 24 hours.
+- Organizer notification listing creates one attendance reminder when a completed event has pending attendance records.
 - User cannot mark another user's notification as read.
 - Registration notification payload includes the expected event ID, event title, status, and message.
 - Cancellation creates a cancellation notification.
@@ -482,7 +488,7 @@ Storage::fake('public');
 The current backend test suite passes:
 
 ```text
-116 passed, 450 assertions
+122 passed, 494 assertions
 ```
 
 Command used:
@@ -521,7 +527,8 @@ frontend display, routing, store/API behavior, and component interaction logic:
   full/registered/cancelled/completed states, and lazy image loading.
 - Role-specific navigation items, home links, and route access decisions.
 - Notification ownership filtering, unread counts, newest-first ordering,
-  mark-all-read, and single-notification read actions.
+  mark-all-read, single-notification read actions, organizer notification
+  adaptation, and notification action navigation.
 
 Frontend tests are organized by feature area under:
 
@@ -581,7 +588,7 @@ npm run test
 React/Vitest behavior and avoids loading the Tailwind Vite native plugin during
 unit tests.
 
-The current frontend suite passes with **25 test files and 90 tests**.
+The current frontend suite passes with **25 test files and 93 tests**.
 
 Frontend lint and production build also pass:
 

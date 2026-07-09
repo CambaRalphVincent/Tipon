@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { AttendanceStatus, EventStatus, RegistrationStatus, UserRole } from "../data/mockData";
+import type { AttendanceStatus, EventStatus, NotificationType, RegistrationStatus, UserRole } from "../data/mockData";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 // Sanctum's CSRF-cookie route lives at the app root, not under /api.
@@ -71,7 +71,23 @@ export interface ApiNotification {
   type: string;
   notifiable_type: string;
   notifiable_id: number;
-  data: { event_id: number; event_title: string; status: string; message: string };
+  data: {
+    event_id: number;
+    event_title: string;
+    status?: string;
+    message: string;
+    audience?: "participant" | "organizer";
+    kind?: NotificationType;
+    title?: string;
+    action_url?: string;
+    participant_id?: number;
+    participant_name?: string;
+    registered_count?: number;
+    capacity?: number;
+    threshold_percent?: number;
+    pending_attendance_count?: number;
+    affected_count?: number;
+  };
   read_at: string | null;
   created_at: string;
   updated_at: string;

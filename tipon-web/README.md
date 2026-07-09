@@ -18,9 +18,10 @@ component interaction logic. Current coverage includes auth forms, admin user
 management, organizer dashboard stats, event browsing/management, event-form
 validation including past-schedule blocking, registrant lists, My Registrations
 tabs, attendance badges, shared components, app-store state transitions, role
-navigation, route access, and notification actions.
+navigation, route access, notification actions, and notification action
+navigation.
 
-The current frontend suite passes with **25 test files and 90 tests**.
+The current frontend suite passes with **25 test files and 93 tests**.
 
 Frontend tests are organized by feature area under:
 

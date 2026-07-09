@@ -283,6 +283,20 @@ Controlled mainly by:
 These files define fillable fields, casts, relationships, status constants, and
 model-level behavior.
 
+### Notification Behavior
+
+Controlled mainly by:
+
+- `tipon-api/app/Notifications/RegistrationStatusNotification.php`
+- `tipon-api/app/Notifications/OrganizerRegistrationNotification.php`
+- `tipon-api/app/Notifications/OrganizerEventNotification.php`
+- `tipon-api/app/Services/OrganizerNotificationService.php`
+- `tipon-api/app/Http/Controllers/NotificationController.php`
+
+These files define participant notification payloads, organizer registration
+activity notifications, organizer capacity/reminder/cancellation-summary
+notifications, idempotent reminder creation, and notification read/list behavior.
+
 ## Environment Variables
 
 ### Backend Environment
@@ -466,4 +480,3 @@ TypeScript project settings are controlled by:
 | Backend Vite config | `tipon-api/vite.config.js` |
 | Frontend Vite config | `tipon-web/vite.config.ts` |
 | Frontend test config | `tipon-web/vitest.config.ts` |
-

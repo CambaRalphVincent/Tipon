@@ -89,7 +89,11 @@ Tipon/
    dashboard stats stay in sync immediately.
 5. **Dashboards & Notifications** — organizer dashboard shows registration counts,
    capacity usage, and attendance rate per event; participants and organizers receive
-   in-app notifications on registration/event changes.
+   in-app notifications on registration/event changes. Notification rows can open
+   their related destination, such as a Livewire event page, organizer registrant
+   list, or organizer event inventory. Organizer notifications also cover capacity
+   milestones, full events, upcoming-event reminders, pending-attendance reminders,
+   and event-cancellation summaries.
 
 ## Design
 
@@ -144,7 +148,8 @@ Tipon/
   `(event_id, user_id) WHERE status = 'registered'` blocks duplicate active
   registrations at the database level.
 - **notifications** — Laravel's standard polymorphic table: id (uuid), type,
-  notifiable_type + notifiable_id, data (json payload), read_at, timestamps.
+  notifiable_type + notifiable_id, data (JSON payload with event context,
+  notification kind, message, and optional action URL), read_at, timestamps.
 
 Event capacity/fill count is always derived live (count of active registrations),
 never stored as a separate counter.
@@ -207,7 +212,7 @@ cd tipon-api
 php artisan test
 ```
 
-The current backend suite passes with **116 tests and 450 assertions**. For the
+The current backend suite passes with **122 tests and 494 assertions**. For the
 test folder structure, covered cases, and Laravel testing concepts used, see
 [docs/AUTOMATED_TESTING.md](docs/AUTOMATED_TESTING.md).
 
@@ -233,7 +238,7 @@ npm run build
 Frontend tests are categorized under `tipon-web/src/app/tests` for
 AccessControl, Admin, Attendance, Auth, Components, Events, Notifications,
 Organizer, Registrations, and Store. The current frontend suite passes with
-**25 test files and 90 tests**.
+**25 test files and 93 tests**.
 
 ## API Overview
 
@@ -307,7 +312,8 @@ state in Livewire classes under `app/Livewire`.
   `tipon-theme` localStorage key and the same three options:
   `Bayanihan Gold`, `Tropical Teal`, and `Festival Sunset`.
 - Notifications use Laravel database notifications. Clicking one notification
-  marks it as read; `Mark all read` clears the unread count.
+  marks it as read and may open the related event destination; `Mark all read`
+  clears the unread count.
 - Event thumbnails are rendered with explicit image dimensions and lazy loading
   rules to reduce browse-page scrolling lag.
 
@@ -414,8 +420,9 @@ and matches the supervisor's requested structure.
   resend behavior, notification payload/order, additional upload edge cases, API
   response shapes, database constraints, admin validation rules, logout/session
   behavior, registration edge cases, organizer registrant-list ownership,
-  notification-delivery failure resilience, auth normalization, event update edge
-  cases, already-cancelled registration protection, capacity-reduction blocking,
+  notification-delivery failure resilience, organizer notification milestones and
+  reminders, auth normalization, event update edge cases, already-cancelled
+  registration protection, capacity-reduction blocking,
   event-cancellation side effects, participant re-registration history display,
   Philippines-local event schedule handling, and individual Livewire notification
   read ownership.
