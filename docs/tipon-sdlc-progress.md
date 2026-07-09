@@ -100,6 +100,7 @@ Most core features are already working. Current work is focused on UI consistenc
 - Implemented event thumbnail upload.
 - Implemented attendance tracking.
 - Implemented admin user management.
+- Implemented admin event monitoring.
 - Implemented organizer account creation.
 - Added email OTP verification for admin-created organizer accounts.
 - Shared the same password-strength validation rules between participant registration and admin organizer creation.
@@ -161,6 +162,9 @@ Most core features are already working. Current work is focused on UI consistenc
 - Expanded organizer notifications for participant registrations, participant
   cancellations, 90% capacity milestones, full events, upcoming-event reminders,
   attendance reminders, and event-cancellation summaries.
+- Added admin notifications for new organizer-created events, unverified
+  organizer reminders, and cancellation summaries when an event cancellation
+  affects active registrants.
 - Matched the Livewire theme switcher visually and behaviorally with the React theme switcher.
 - Standardized the theme storage key across React and Livewire as `tipon-theme`.
 - Added the same theme options across both stacks:
@@ -251,6 +255,8 @@ Most core features are already working. Current work is focused on UI consistenc
 - Organizers cannot create two active events with the same title.
 - Cancelled event titles can be reused.
 - Admin can only promote users who are currently participants.
+- Admin notification reminders are created idempotently so the same stale
+  organizer account does not create duplicate reminders for one admin.
 
 ### Database-Level Constraints
 
@@ -358,13 +364,14 @@ Current automated coverage includes:
 - Notification listing, read state, ownership protection, payload content,
   cancellation notifications, organizer registration/cancellation notifications,
   organizer capacity milestones, organizer upcoming-event and attendance
-  reminders, organizer event-cancellation summaries, newest-first ordering, and
-  notification-delivery failure resilience.
+  reminders, organizer event-cancellation summaries, admin new-event
+  notifications, admin unverified-organizer reminders, admin event-cancellation
+  summaries, newest-first ordering, and notification-delivery failure resilience.
 
 Current passing result:
 
 ```text
-122 tests passed, 494 assertions
+123 tests passed, 509 assertions
 ```
 
 The testing guide is documented in `docs/AUTOMATED_TESTING.md`.
@@ -381,15 +388,15 @@ The React frontend now includes categorized Vitest and React Testing Library tes
 under `tipon-web/src/app/tests`, covering AccessControl, Admin, Attendance, Auth,
 Components, Events, Notifications, Organizer, Registrations, and Store behavior.
 Current frontend coverage includes admin user management, organizer dashboard
-totals, manage-events filtering/actions, registrant lists, AppStore state changes,
-shared component states, auth, route access, notifications including action
-navigation, event browsing, event
+and event monitoring, organizer dashboard totals, manage-events filtering/actions,
+registrant lists, AppStore state changes, shared component states, auth, route
+access, notifications including action navigation, event browsing, event
 forms including past-schedule blocking, attendance badges, and My Registrations.
 
 Current passing frontend result:
 
 ```text
-25 test files passed, 93 tests passed
+26 test files passed, 97 tests passed
 ```
 
 ### Still Needed

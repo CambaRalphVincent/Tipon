@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Notifications\RegistrationStatusNotification;
+use App\Services\AdminNotificationService;
 use App\Services\OrganizerNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -64,6 +65,12 @@ class EventController extends Controller
         $event = $request->user()->organizedEvents()->create($data);
         $event->load('organizer:id,name')
             ->loadCount(['registrations as registered_count' => fn($q) => $q->where('status', 'registered')]);
+
+        try {
+            app(AdminNotificationService::class)->notifyEventCreated($event);
+        } catch (Throwable) {
+            // Admin notification delivery must not undo a successful event creation.
+        }
 
         return response()->json($event, 201);
     }
@@ -155,6 +162,7 @@ class EventController extends Controller
 
         try {
             app(OrganizerNotificationService::class)->notifyCancellationSummary($event, $registrationsToNotify->count());
+            app(AdminNotificationService::class)->notifyEventCancellationSummary($event, $registrationsToNotify->count());
         } catch (Throwable) {
             // Summary notification should not undo a successful event cancellation.
         }

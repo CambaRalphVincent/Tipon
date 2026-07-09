@@ -41,6 +41,7 @@ const NAV_ICONS: Record<string, NavItem["icon"]> = {
   "/organizer": LayoutDashboard,
   "/organizer/events": ListChecks,
   "/admin": Users,
+  "/admin/events": CalendarDays,
 };
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {

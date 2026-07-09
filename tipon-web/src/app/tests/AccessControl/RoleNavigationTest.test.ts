@@ -22,7 +22,10 @@ describe("role navigation", () => {
   });
 
   it("shows admin navigation only for admin workflows", () => {
-    expect(getNavigationItemsForRole("admin").map((item) => item.label)).toEqual(["User Management"]);
+    expect(getNavigationItemsForRole("admin").map((item) => item.label)).toEqual([
+      "User Management",
+      "Event Monitoring",
+    ]);
   });
 
   it("returns the correct home href for each role", () => {
@@ -34,5 +37,7 @@ describe("role navigation", () => {
   it("marks nested navigation paths active", () => {
     expect(isNavigationItemActive("/organizer/events/123", { to: "/organizer/events", label: "Manage Events" })).toBe(true);
     expect(isNavigationItemActive("/organizer/events", { to: "/organizer", label: "Dashboard" })).toBe(false);
+    expect(isNavigationItemActive("/admin/events", { to: "/admin/events", label: "Event Monitoring" })).toBe(true);
+    expect(isNavigationItemActive("/admin/events", { to: "/admin", label: "User Management" })).toBe(false);
   });
 });

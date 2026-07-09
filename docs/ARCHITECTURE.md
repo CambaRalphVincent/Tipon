@@ -34,6 +34,7 @@ It is responsible for:
 - Admin user management.
 - File upload validation and storage.
 - Notification creation and read-state updates.
+- Admin reminder and event-cancellation notification creation.
 - Database constraints and transaction-safe capacity checks.
 
 Important backend guarantees:
@@ -59,6 +60,7 @@ It is responsible for:
 - Event creation and edit dialogs.
 - Attendance management UI.
 - Admin User Management page.
+- Admin Event Monitoring page.
 - Theme switching on React pages.
 - React notification popover.
 - Client-side form feedback and validation hints, including duplicate-title and
@@ -163,9 +165,11 @@ Shared conventions include:
   - mark-all-read action
   - status-based titles such as `Registration confirmed`
   - notification action links route users to the relevant event, registrant list,
-    or organizer event inventory
+    organizer event inventory, or admin monitoring page
   - organizer notifications for registration activity, capacity milestones,
     upcoming-event reminders, attendance reminders, and event-cancellation summaries
+  - admin notifications for new organizer-created events, unverified organizer
+    accounts, and cancelled events that affected registered participants
 - Similar event cards, badges, capacity bars, and empty states.
 
 ## Why Responsibilities Are Split This Way

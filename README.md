@@ -46,7 +46,8 @@ Tipon/
   and cancels their own events, views/manages registrants, records attendance, and
   has a dashboard with registration/attendance stats.
 - **Admin** — seeded account. Lists all participants/organizers, creates new
-  organizer accounts, and can promote a participant to organizer.
+  organizer accounts, promotes participants to organizers, monitors platform
+  events, and receives admin-side notifications.
 
 ## Core Workflows
 
@@ -93,7 +94,9 @@ Tipon/
    their related destination, such as a Livewire event page, organizer registrant
    list, or organizer event inventory. Organizer notifications also cover capacity
    milestones, full events, upcoming-event reminders, pending-attendance reminders,
-   and event-cancellation summaries.
+   and event-cancellation summaries. Admins can monitor all platform events and
+   receive notifications for new organizer-created events, unverified organizer
+   accounts, and cancelled events that affected registered participants.
 
 ## Design
 
@@ -212,7 +215,7 @@ cd tipon-api
 php artisan test
 ```
 
-The current backend suite passes with **122 tests and 494 assertions**. For the
+The current backend suite passes with **123 tests and 509 assertions**. For the
 test folder structure, covered cases, and Laravel testing concepts used, see
 [docs/AUTOMATED_TESTING.md](docs/AUTOMATED_TESTING.md).
 
@@ -238,7 +241,7 @@ npm run build
 Frontend tests are categorized under `tipon-web/src/app/tests` for
 AccessControl, Admin, Attendance, Auth, Components, Events, Notifications,
 Organizer, Registrations, and Store. The current frontend suite passes with
-**25 test files and 93 tests**.
+**26 test files and 97 tests**.
 
 ## API Overview
 
@@ -421,7 +424,8 @@ and matches the supervisor's requested structure.
   response shapes, database constraints, admin validation rules, logout/session
   behavior, registration edge cases, organizer registrant-list ownership,
   notification-delivery failure resilience, organizer notification milestones and
-  reminders, auth normalization, event update edge cases, already-cancelled
+  reminders, admin new-event notifications, admin notification reminders and
+  cancellation summaries, auth normalization, event update edge cases, already-cancelled
   registration protection, capacity-reduction blocking,
   event-cancellation side effects, participant re-registration history display,
   Philippines-local event schedule handling, and individual Livewire notification

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AdminNotificationService;
 use App\Services\OrganizerNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,10 @@ class NotificationController extends Controller
     {
         if ($request->user()->role === 'organizer') {
             app(OrganizerNotificationService::class)->syncDueReminders($request->user());
+        }
+
+        if ($request->user()->role === 'admin') {
+            app(AdminNotificationService::class)->syncDueReminders($request->user());
         }
 
         $notifications = $request->user()->notifications()->latest()->get();

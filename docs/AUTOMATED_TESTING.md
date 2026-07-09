@@ -20,6 +20,7 @@ For Tipon, the tests verify rules such as:
 - Admin-only routes are blocked from participants and organizers.
 - Upload validation rejects invalid files.
 - Notifications can only be read by their owner.
+- Admin notification reminders are created once per matching condition.
 
 ## Test Folder Structure
 
@@ -214,8 +215,9 @@ Checks organizer event management:
 - Organizer cannot reduce capacity below the current number of active registrations.
 - Organizer cannot update another organizer's event.
 - Organizer can cancel their own event.
+- Event creation creates an admin new-event notification.
 - Event cancellation cancels active registrations and notifies active registrants.
-- Event cancellation creates an organizer cancellation summary notification.
+- Event cancellation creates organizer and admin cancellation summary notifications.
 - Duplicate open event titles are rejected case-insensitively.
 - Event creation preserves Philippines-local event time values.
 - Legacy UTC-style event date payloads are converted back to Philippines-local time.
@@ -349,6 +351,7 @@ Checks notification ownership:
 - Organizer receives one event-full notification.
 - Organizer notification listing creates one upcoming-event reminder when an open event starts within 24 hours.
 - Organizer notification listing creates one attendance reminder when a completed event has pending attendance records.
+- Admin notification listing creates one unverified-organizer reminder for organizer accounts older than 24 hours.
 - User cannot mark another user's notification as read.
 - Registration notification payload includes the expected event ID, event title, status, and message.
 - Cancellation creates a cancellation notification.
@@ -488,7 +491,7 @@ Storage::fake('public');
 The current backend test suite passes:
 
 ```text
-122 passed, 494 assertions
+123 passed, 509 assertions
 ```
 
 Command used:
@@ -504,7 +507,8 @@ frontend display, routing, store/API behavior, and component interaction logic:
   and OTP input limits.
 - Admin user loading, loading/error states, search filtering, participant and
   organizer counts, participant promotion, organizer creation validation, email
-  normalization, and table updates after organizer creation.
+  normalization, table updates after organizer creation, and event monitoring
+  status/search filtering.
 - Browse Events filtering, searching, sorting, registered/full badges, and
   duplicate title checks.
 - Organizer Dashboard ownership filtering, dashboard totals, attendance-rate
@@ -545,6 +549,7 @@ src/app/tests/
 |   `-- RouteAccessUiTest.test.tsx
 |-- Admin/
 |   |-- AdminDashboardUiTest.test.tsx
+|   |-- AdminEventMonitorUiTest.test.tsx
 |   `-- CreateOrganizerDialogTest.test.tsx
 |-- Attendance/
 |   |-- AttendanceBadgeTest.test.ts
@@ -588,7 +593,7 @@ npm run test
 React/Vitest behavior and avoids loading the Tailwind Vite native plugin during
 unit tests.
 
-The current frontend suite passes with **25 test files and 93 tests**.
+The current frontend suite passes with **26 test files and 97 tests**.
 
 Frontend lint and production build also pass:
 

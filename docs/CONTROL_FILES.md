@@ -160,6 +160,7 @@ This file uses React Router and defines the client-side SPA routes:
 - `/organizer/events`
 - `/organizer/events/:id`
 - `/admin`
+- `/admin/events`
 - fallback route `*`
 
 Participant `/events` pages are not handled by React Router. They are served by
@@ -290,12 +291,16 @@ Controlled mainly by:
 - `tipon-api/app/Notifications/RegistrationStatusNotification.php`
 - `tipon-api/app/Notifications/OrganizerRegistrationNotification.php`
 - `tipon-api/app/Notifications/OrganizerEventNotification.php`
+- `tipon-api/app/Notifications/AdminSystemNotification.php`
 - `tipon-api/app/Services/OrganizerNotificationService.php`
+- `tipon-api/app/Services/AdminNotificationService.php`
 - `tipon-api/app/Http/Controllers/NotificationController.php`
 
 These files define participant notification payloads, organizer registration
 activity notifications, organizer capacity/reminder/cancellation-summary
-notifications, idempotent reminder creation, and notification read/list behavior.
+notifications, admin new-event notifications, admin unverified-organizer
+reminders, admin event-cancellation summaries, idempotent reminder creation, and
+notification read/list behavior.
 
 ## Environment Variables
 

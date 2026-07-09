@@ -16,6 +16,7 @@ class ManagementTest extends TestCase
 
     public function test_organizer_can_create_an_event(): void
     {
+        $admin = User::factory()->create(['role' => 'admin']);
         $organizer = User::factory()->create(['role' => 'organizer']);
 
         Sanctum::actingAs($organizer);
@@ -39,6 +40,12 @@ class ManagementTest extends TestCase
             'title' => 'Campus Tech Summit',
             'status' => Event::STATUS_OPEN,
         ]);
+
+        $adminNotification = $admin->fresh()->notifications()->firstOrFail();
+        $this->assertSame('admin_event_created', $adminNotification->data['kind']);
+        $this->assertSame('Campus Tech Summit', $adminNotification->data['event_title']);
+        $this->assertSame($organizer->id, $adminNotification->data['organizer_id']);
+        $this->assertSame('/admin/events', $adminNotification->data['action_url']);
     }
 
     public function test_event_date_preserves_philippines_local_time_when_created(): void
@@ -264,6 +271,7 @@ class ManagementTest extends TestCase
 
     public function test_event_cancellation_cancels_active_registrations_and_notifies_active_registrants(): void
     {
+        $admin = User::factory()->create(['role' => 'admin']);
         $organizer = User::factory()->create(['role' => 'organizer']);
         $activeParticipant = User::factory()->create(['role' => 'participant']);
         $anotherActiveParticipant = User::factory()->create(['role' => 'participant']);
@@ -314,6 +322,11 @@ class ManagementTest extends TestCase
         $this->assertSame('event_cancellation_summary', $summary->data['kind']);
         $this->assertSame(2, $summary->data['affected_count']);
         $this->assertSame('/organizer/events', $summary->data['action_url']);
+
+        $adminSummary = $admin->fresh()->notifications()->firstOrFail();
+        $this->assertSame('admin_event_cancellation_summary', $adminSummary->data['kind']);
+        $this->assertSame(2, $adminSummary->data['affected_count']);
+        $this->assertSame('/admin/events', $adminSummary->data['action_url']);
     }
 
     public function test_organizer_cannot_create_duplicate_open_event_title_case_insensitively(): void

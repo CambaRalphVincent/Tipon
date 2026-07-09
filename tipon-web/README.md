@@ -15,13 +15,13 @@ npm run build
 `npm run test` runs Vitest and React Testing Library coverage through
 `vitest.config.ts` for frontend display, routing, store/API behavior, and
 component interaction logic. Current coverage includes auth forms, admin user
-management, organizer dashboard stats, event browsing/management, event-form
+management, admin event monitoring, organizer dashboard stats, event browsing/management, event-form
 validation including past-schedule blocking, registrant lists, My Registrations
 tabs, attendance badges, shared components, app-store state transitions, role
 navigation, route access, notification actions, and notification action
 navigation.
 
-The current frontend suite passes with **25 test files and 93 tests**.
+The current frontend suite passes with **26 test files and 97 tests**.
 
 Frontend tests are organized by feature area under:
 
@@ -32,6 +32,7 @@ src/app/tests/
 |   `-- RouteAccessUiTest.test.tsx
 |-- Admin/
 |   |-- AdminDashboardUiTest.test.tsx
+|   |-- AdminEventMonitorUiTest.test.tsx
 |   `-- CreateOrganizerDialogTest.test.tsx
 |-- Attendance/
 |   |-- AttendanceBadgeTest.test.ts

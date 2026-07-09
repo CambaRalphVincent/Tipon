@@ -18,6 +18,7 @@ export const ORGANIZER_NAV_ITEMS: NavigationItem[] = [
 
 export const ADMIN_NAV_ITEMS: NavigationItem[] = [
   { to: "/admin", label: "User Management" },
+  { to: "/admin/events", label: "Event Monitoring" },
 ];
 
 export function getNavigationItemsForRole(role: UserRole): NavigationItem[] {
@@ -33,5 +34,6 @@ export function getHomeHrefForRole(role: UserRole, livewireBaseUrl: string): str
 }
 
 export function isNavigationItemActive(pathname: string, item: NavigationItem): boolean {
-  return pathname === item.to || (item.to !== "/organizer" && pathname.startsWith(item.to));
+  return pathname === item.to
+    || (!["/organizer", "/admin"].includes(item.to) && pathname.startsWith(item.to));
 }

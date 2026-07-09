@@ -209,6 +209,36 @@ class NotificationTest extends TestCase
         }
     }
 
+    public function test_admin_notification_list_creates_unverified_organizer_reminder_once(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-09 08:00:00', 'Asia/Manila'));
+
+        try {
+            $admin = User::factory()->create(['role' => 'admin']);
+            $organizer = User::factory()->create([
+                'role' => 'organizer',
+                'name' => 'Pending Organizer',
+                'email' => 'pending@tipon.test',
+                'email_verified_at' => null,
+            ]);
+            $organizer->forceFill(['created_at' => now()->subDays(2)])->save();
+
+            Sanctum::actingAs($admin);
+
+            $this->getJson('/api/notifications')
+                ->assertOk()
+                ->assertJsonCount(1)
+                ->assertJsonPath('0.data.audience', 'admin')
+                ->assertJsonPath('0.data.kind', 'unverified_organizer_reminder')
+                ->assertJsonPath('0.data.organizer_id', $organizer->id)
+                ->assertJsonPath('0.data.action_url', '/admin');
+
+            $this->getJson('/api/notifications')->assertOk()->assertJsonCount(1);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_user_cannot_mark_another_users_notification_as_read(): void
     {
         $owner = User::factory()->create(['role' => 'participant']);

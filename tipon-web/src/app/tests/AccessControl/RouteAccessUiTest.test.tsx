@@ -45,6 +45,10 @@ vi.mock("../../pages/AdminDashboard", () => ({
   AdminDashboard: () => <div>Admin Dashboard Page</div>,
 }));
 
+vi.mock("../../pages/AdminEventMonitor", () => ({
+  AdminEventMonitor: () => <div>Admin Event Monitor Page</div>,
+}));
+
 const user = (role: UserRole): User => ({
   id: `${role}-1`,
   name: `${role} user`,
@@ -81,6 +85,15 @@ describe("AppRoutes access control UI", () => {
     renderWithRouter(React.createElement(AppRoutes), ["/admin"]);
 
     expect(screen.getByText("Admin Dashboard Page")).toBeInTheDocument();
+  });
+
+  it("allows admins to render event monitoring", () => {
+    store.currentUser = user("admin");
+    store.role = "admin";
+
+    renderWithRouter(React.createElement(AppRoutes), ["/admin/events"]);
+
+    expect(screen.getByText("Admin Event Monitor Page")).toBeInTheDocument();
   });
 
   it("blocks organizers from participant-only pages", async () => {

@@ -12,6 +12,7 @@ import { OrganizerDashboard } from "./pages/OrganizerDashboard";
 import { ManageEvents } from "./pages/ManageEvents";
 import { RegistrantList } from "./pages/RegistrantList";
 import { AdminDashboard } from "./pages/AdminDashboard";
+import { AdminEventMonitor } from "./pages/AdminEventMonitor";
 import { LIVEWIRE_BASE_URL } from "./lib/api";
 
 export default function App() {
@@ -145,6 +146,20 @@ export function AppRoutes() {
         element={
           loggedIn && isAdmin ? (
             <AppShell><AdminDashboard /></AppShell>
+          ) : loggedIn && isOrganizer ? (
+            <Navigate to="/organizer" replace />
+          ) : loggedIn ? (
+            <HardRedirect to="/events" />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route
+        path="/admin/events"
+        element={
+          loggedIn && isAdmin ? (
+            <AppShell><AdminEventMonitor /></AppShell>
           ) : loggedIn && isOrganizer ? (
             <Navigate to="/organizer" replace />
           ) : loggedIn ? (

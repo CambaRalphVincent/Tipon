@@ -72,16 +72,19 @@ export interface ApiNotification {
   notifiable_type: string;
   notifiable_id: number;
   data: {
-    event_id: number;
-    event_title: string;
+    event_id?: number;
+    event_title?: string;
     status?: string;
     message: string;
-    audience?: "participant" | "organizer";
+    audience?: "participant" | "organizer" | "admin";
     kind?: NotificationType;
     title?: string;
     action_url?: string;
     participant_id?: number;
     participant_name?: string;
+    organizer_id?: number;
+    organizer_name?: string;
+    organizer_email?: string;
     registered_count?: number;
     capacity?: number;
     threshold_percent?: number;

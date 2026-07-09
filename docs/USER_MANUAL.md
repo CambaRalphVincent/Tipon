@@ -20,7 +20,7 @@ This manual explains how to use Tipon from the point of view of each user role:
 |---|---|
 | Participant | Browse events, register for events, cancel registrations, view registration history, and receive notifications. |
 | Organizer | Create and manage events, view registrants, record attendance, and monitor event statistics. |
-| Admin | Manage users, create organizer accounts, and promote participants to organizers. |
+| Admin | Manage users, create organizer accounts, promote participants to organizers, monitor events, and receive admin notifications. |
 
 ## 3. System Access
 
@@ -79,7 +79,7 @@ Organizers can:
 
 ### Admin
 
-Admins manage user accounts.
+Admins manage user accounts and monitor platform events.
 
 Admins can:
 
@@ -87,6 +87,8 @@ Admins can:
 - Search users
 - Create organizer accounts
 - Promote participants to organizer
+- Review all platform events by status and capacity
+- Read admin notifications
 
 ## 5. Signing In
 
@@ -410,14 +412,36 @@ This page shows:
 - Join dates
 - Participant and organizer counts
 
-### 9.2 Search Users
+### 9.2 Event Monitoring
+
+The Event Monitoring page helps admins review events across all organizers.
+
+This page shows:
+
+- Total events
+- Open events
+- Full events
+- Cancelled events
+- Event title and venue
+- Organizer name
+- Schedule
+- Capacity usage
+- Event status
+
+To review events:
+
+1. Click `Event Monitoring` in the sidebar.
+2. Use the status filters to show `All`, `Open`, `Completed`, or `Cancelled` events.
+3. Type an event title, venue, or organizer name in the search box to narrow the table.
+
+### 9.3 Search Users
 
 1. Go to `User Management`.
 2. Type a name or email in `Search users...`.
 
 The table updates to show matching accounts.
 
-### 9.3 Create an Organizer Account
+### 9.4 Create an Organizer Account
 
 1. Click `New Organizer`.
 2. Enter the organizer's full name.
@@ -437,7 +461,7 @@ Use the same password requirements as participant registration:
 - At least one number
 - At least one symbol
 
-### 9.4 Promote a Participant to Organizer
+### 9.5 Promote a Participant to Organizer
 
 1. Go to `User Management`.
 2. Find the participant.
@@ -450,6 +474,17 @@ Important effect:
 When a participant is promoted, they become an organizer. They can create and
 manage events, but they lose participant access and can no longer register for
 events.
+
+### 9.6 Admin Notifications
+
+Admin notifications appear from the bell icon in the top-right area. Click a
+notification to mark it as read and open the related admin page.
+
+Admins may receive notifications when:
+
+- An organizer creates a new event.
+- An organizer account remains unverified for more than 24 hours.
+- An organizer cancels an event that had active registered participants.
 
 ## 10. Shared Features
 
@@ -470,6 +505,7 @@ Organizer navigation:
 Admin navigation:
 
 - User Management
+- Event Monitoring
 
 On mobile, click the menu icon to open or close the sidebar.
 

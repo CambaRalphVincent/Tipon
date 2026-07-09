@@ -14,6 +14,9 @@ export type NotificationType =
   | "upcoming_event_reminder"
   | "attendance_reminder"
   | "event_cancellation_summary"
+  | "admin_event_created"
+  | "unverified_organizer_reminder"
+  | "admin_event_cancellation_summary"
   | "event_updated"
   | "event_cancelled"
   | "event_reminder";
