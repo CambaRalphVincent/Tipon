@@ -102,7 +102,7 @@ export function ManageEvents() {
         <EventFormDialog
           trigger={
             <TriggerButton>
-              <Plus className="size-4" /> Create event
+              <Plus className="size-4" /> Create Event
             </TriggerButton>
           }
         />
@@ -126,7 +126,7 @@ export function ManageEvents() {
         <Card className="overflow-hidden py-0">
           <div className="flex flex-col justify-between gap-3 border-b px-4 py-2.5 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-base font-semibold">Event inventory</h2>
+              <h2 className="text-base font-semibold">Event Inventory</h2>
               <p className="text-xs text-muted-foreground">
                 {visibleEvents.length} of {myEvents.length} events shown
               </p>

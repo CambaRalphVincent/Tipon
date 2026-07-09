@@ -91,7 +91,7 @@ export function OrganizerDashboard() {
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link to="/organizer/events">Manage events</Link>
+          <Link to="/organizer/events">Manage Events</Link>
         </Button>
       </div>
 
@@ -111,7 +111,7 @@ export function OrganizerDashboard() {
                 <p className="mt-1 text-xs text-muted-foreground">Next events ordered by schedule.</p>
               </div>
               <Button variant="outline" size="sm" className="justify-self-end" asChild>
-                <Link to="/organizer/events">Manage all</Link>
+                <Link to="/organizer/events">Manage All</Link>
               </Button>
             </CardHeader>
             <CardContent className="space-y-1.5 px-5">
